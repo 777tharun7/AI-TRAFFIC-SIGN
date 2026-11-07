@@ -1,0 +1,13 @@
+{
+  "model_name": "RoadSense-Deep-CNN-43Class",
+  "version": "1.0.0",
+  "best_val_acc": 0.9436,
+  "mAP50": 0.9389,
+  "final_precision": 0.9485,
+  "final_recall": 0.9436,
+  "final_f1": 0.9435,
+  "inference_latency_ms": 0.23,
+  "fps": 4425.1,
+  "classes_count": 43,
+  "total_dataset_samples": 51882
+}
