@@ -85,19 +85,40 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
 
           {/* Center 4 Cols: Speedometer Gauge */}
           <div className="md:col-span-4 flex flex-col items-center justify-center text-center">
-            <div className="relative w-52 h-52 rounded-full border border-white/15 bg-black/40 flex flex-col items-center justify-center shadow-2xl">
-              {/* Outer Speed Indicator Arc */}
-              <div className="absolute inset-0 rounded-full border-2 border-emerald-500/30" />
+            <div className="relative w-56 h-56 rounded-full border border-white/15 bg-black/50 flex flex-col items-center justify-center shadow-2xl backdrop-blur-md">
               
-              <span className="text-7xl font-black tracking-tight text-white font-mono">
+              {/* Dynamic SVG Speedometer Arc */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="4" fill="transparent" />
+                <circle 
+                  cx="50" 
+                  cy="50" 
+                  r="42" 
+                  stroke={currentSpeed > (vehicle.target_speed_kmh || 50) + 5 ? '#ef4444' : currentSpeed > 0 ? '#10b981' : '#64748b'} 
+                  strokeWidth="4" 
+                  fill="transparent" 
+                  strokeDasharray="264" 
+                  strokeDashoffset={Math.max(0, 264 - (264 * (currentSpeed / 120)))}
+                  strokeLinecap="round"
+                />
+              </svg>
+              
+              <span className="text-7xl font-black tracking-tight text-white font-mono leading-none">
                 {currentSpeed}
               </span>
-              <span className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">
                 KM / H
               </span>
 
+              {/* Target / Advisory Speed Limit Marker */}
+              {vehicle.target_speed_kmh && (
+                <div className="flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-[10px] font-mono text-emerald-300 font-bold">
+                  <span>LIMIT {Math.round(vehicle.target_speed_kmh)}</span>
+                </div>
+              )}
+
               {/* Behavior State Badge */}
-              <div className={`mt-2 px-3 py-1 rounded-full text-xs font-mono font-bold border ${
+              <div className={`mt-2 px-3 py-0.5 rounded-full text-[11px] font-mono font-bold border ${
                 vehicle.behavior_state === 'WAITING_FOR_GREEN' || vehicle.behavior_state === 'STOPPED' || vehicle.behavior_state === 'WAITING_AT_STOP_SIGN'
                   ? 'bg-red-600/30 border-red-500 text-red-200 animate-pulse'
                   : vehicle.behavior_state === 'DECELERATING' || vehicle.behavior_state === 'STOPPING'
@@ -111,7 +132,7 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
 
               {/* Distance to Stop Line if applicable */}
               {vehicle.distance_to_stop_line_m !== null && vehicle.distance_to_stop_line_m !== undefined && (
-                <div className="mt-1.5 text-[11px] font-mono text-amber-400 font-semibold">
+                <div className="mt-1 text-[11px] font-mono text-amber-400 font-semibold">
                   Stop Line: {vehicle.distance_to_stop_line_m}m
                 </div>
               )}

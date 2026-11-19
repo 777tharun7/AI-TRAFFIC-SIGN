@@ -22,10 +22,16 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
 }) => {
   const currentSpeed = vehicle?.speed_kmh ?? 45;
   const behaviorState = vehicle?.behavior_state ?? 'MOVING';
-  const distanceToEvent = Math.round(vehicle?.distance_to_event_m ?? 80);
-  const activeSignal = signals.length > 0 ? signals[0] : null;
-  const signalState = activeSignal?.state ?? 'RED';
-  const timeRemaining = activeSignal?.remaining_time ?? 30;
+  const effectiveSignal = vehicle?.active_signal || (signals.length > 0 ? signals[0] : null);
+  const signalState = effectiveSignal?.state ?? 'RED';
+  const timeRemaining = effectiveSignal?.remaining_time ?? 30;
+  const distanceToEvent = Math.round(vehicle?.distance_to_stop_line_m ?? vehicle?.distance_to_event_m ?? 80);
+  const speedLimit = vehicle?.target_speed_kmh ?? 40;
+  
+  // Dynamic color coding for automotive glanceability
+  const speedColor = currentSpeed > speedLimit + 5 
+    ? '#ef4444' 
+    : (behaviorState === 'DECELERATING' || behaviorState === 'STOPPING' || behaviorState === 'WAITING_FOR_GREEN' ? '#f59e0b' : '#10b981');
 
   return (
     <div className="space-y-6">
@@ -63,8 +69,12 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
               {/* Lane & Corridor Guidance */}
               <div className="col-span-4 bg-slate-900/90 rounded-xl p-2.5 border border-slate-800 text-center flex flex-col justify-between h-36">
                 <div>
-                  <span className="text-[9px] font-mono uppercase text-slate-400 block">HITEC City Road</span>
-                  <span className="text-xs font-bold text-blue-400 font-mono">↑ 200 m</span>
+                  <span className="text-[9px] font-mono uppercase text-slate-400 block truncate">
+                    {vehicle?.current_road || 'HITEC City Road'}
+                  </span>
+                  <span className="text-xs font-bold text-blue-400 font-mono">
+                    {Math.round(vehicle?.heading || 0)}° Heading
+                  </span>
                 </div>
                 {/* 3D Road Lane SVG */}
                 <div className="relative h-16 w-full flex justify-center items-center overflow-hidden">
@@ -85,11 +95,11 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
                       cx="50" 
                       cy="50" 
                       r="40" 
-                      stroke="#ef4444" 
+                      stroke={speedColor} 
                       strokeWidth="6" 
                       fill="transparent" 
                       strokeDasharray="251" 
-                      strokeDashoffset={251 - (251 * (currentSpeed / 120))}
+                      strokeDashoffset={Math.max(0, 251 - (251 * (currentSpeed / 120)))}
                       strokeLinecap="round"
                     />
                   </svg>
@@ -99,9 +109,9 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-1 mt-1">
-                  <span className="text-[9px] font-mono text-slate-400">Speed Limit:</span>
-                  <div className="w-4 h-4 rounded-full border border-red-500 text-slate-100 flex items-center justify-center text-[8px] font-black">
-                    40
+                  <span className="text-[9px] font-mono text-slate-400">Advisory:</span>
+                  <div className="w-5 h-5 rounded-full border border-emerald-500 text-emerald-400 flex items-center justify-center text-[8px] font-black font-mono">
+                    {Math.round(speedLimit)}
                   </div>
                 </div>
               </div>
@@ -110,26 +120,32 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
               <div className="col-span-4 space-y-2">
                 <div className="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800 flex items-center gap-2">
                   <div className="w-3.5 h-8 rounded bg-black flex flex-col items-center justify-between p-0.5 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-sm shadow-red-500" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500/20" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
+                    <span className={`w-1.5 h-1.5 rounded-full ${signalState === 'RED' ? 'bg-red-500 animate-pulse shadow-sm shadow-red-500' : 'bg-red-950'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${signalState === 'YELLOW' ? 'bg-amber-500 animate-pulse' : 'bg-amber-950'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${signalState === 'GREEN' ? 'bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500' : 'bg-emerald-950'}`} />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-red-400 block leading-none">Red Signal</span>
+                    <span className={`text-[10px] font-bold block leading-none ${signalState === 'RED' ? 'text-red-400' : signalState === 'GREEN' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {signalState} Signal
+                    </span>
                     <span className="text-[11px] font-mono font-black text-white">{distanceToEvent} m</span>
-                    <span className="text-[9px] font-mono text-slate-400 block">{timeRemaining} sec</span>
+                    <span className="text-[9px] font-mono text-slate-400 block">{timeRemaining}s rem</span>
                   </div>
                 </div>
 
-                <div className="py-1 px-2 rounded-lg bg-red-600/90 text-white text-[9px] font-bold text-center tracking-wide">
-                  Prepare to Stop
+                <div className={`py-1 px-2 rounded-lg text-white text-[9px] font-bold text-center tracking-wide ${
+                  signalState === 'RED' ? 'bg-red-600/90' : signalState === 'GREEN' ? 'bg-emerald-600/90' : 'bg-amber-600/90'
+                }`}>
+                  {behaviorState.replace(/_/g, ' ')}
                 </div>
 
                 <div className="bg-slate-900/60 rounded-lg p-1.5 border border-slate-800/80 flex items-center gap-1.5 text-[9px]">
                   <span className="text-amber-400">⚠️</span>
-                  <div>
-                    <span className="text-slate-400 block text-[8px]">Next</span>
-                    <span className="font-bold text-slate-200">Speed Breaker 250m</span>
+                  <div className="truncate">
+                    <span className="text-slate-400 block text-[8px]">Event</span>
+                    <span className="font-bold text-slate-200 truncate block">
+                      {vehicle?.active_events?.[0]?.name || 'Speed Breaker 250m'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -211,7 +227,7 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
             {/* Right: Detailed Inspection Event Details Card */}
             <EventDetailsCard
               vehicle={vehicle}
-              signal={activeSignal}
+              signal={effectiveSignal}
             />
 
           </div>

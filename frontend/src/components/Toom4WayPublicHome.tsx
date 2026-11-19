@@ -76,6 +76,14 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
             </button>
 
             <button
+              onClick={() => onNavigateTab('ui_ux_debugger')}
+              className="flex items-center gap-2 px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer border border-slate-700"
+            >
+              <Layers className="w-4 h-4 text-emerald-400" />
+              <span>UI/UX Position Debugger</span>
+            </button>
+
+            <button
               onClick={() => {
                 const el = document.getElementById('engineering-specs');
                 el?.scrollIntoView({ behavior: 'smooth' });

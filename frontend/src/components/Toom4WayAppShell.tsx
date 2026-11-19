@@ -20,6 +20,7 @@ import { AboutPortfolioView } from './AboutPortfolioView';
 import { ProjectDeckAndResearchView } from './ProjectDeckAndResearchView';
 import { AIModelCenter } from './AIModelCenter';
 import { SystemStateInventoryView } from './states/SystemStateInventoryView';
+import { UIUXLayoutStudio } from './UIUXLayoutStudio';
 import { LoginView, RegisterView, VerifyEmailView, ForgotPasswordView } from './auth/AuthPages';
 import { CookieSettingsView, PrivacyPolicyView, TermsOfServiceView } from './legal/LegalPages';
 
@@ -161,6 +162,18 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
               <Zap className="w-4 h-4 text-[#00875A]" />
               <span>Decision Engine (Pt 6)</span>
             </button>
+
+            <button
+              onClick={() => handleNav('ui_ux_debugger')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'ui_ux_debugger'
+                  ? 'bg-[#E6F8F3] text-[#00875A] font-bold shadow-2xs'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-emerald-600" />
+              <span>UI/UX Position Debugger</span>
+            </button>
           </div>
 
           {/* RESEARCH */}
@@ -270,6 +283,14 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
               <span>Live Connected</span>
               <span className="text-[10px] text-slate-500 font-normal pl-1 border-l border-emerald-300">All Systems Online</span>
             </div>
+
+            <button
+              onClick={() => handleNav('ui_ux_debugger')}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-slate-800 cursor-pointer transition-all border border-slate-700"
+            >
+              <Layers className="w-3.5 h-3.5 text-emerald-400" />
+              <span>UI/UX Debugger</span>
+            </button>
 
             <div className="relative p-2 text-slate-600 hover:text-slate-900 cursor-pointer rounded-xl hover:bg-slate-100">
               <Bell className="w-4 h-4" />
@@ -458,6 +479,18 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           {currentView === 'system_states' && (
             <div className="p-6 max-w-7xl mx-auto">
               <SystemStateInventoryView />
+            </div>
+          )}
+
+          {currentView === 'ui_ux_debugger' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <UIUXLayoutStudio
+                vehicle={vehicle}
+                rius={rius}
+                signals={signals}
+                onControl={onControl}
+                onNavigateTab={handleNav}
+              />
             </div>
           )}
 
