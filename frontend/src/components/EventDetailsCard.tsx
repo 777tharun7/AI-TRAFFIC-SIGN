@@ -36,35 +36,43 @@ export const EventDetailsCard: React.FC<Props> = ({ vehicle, signal }) => {
           </div>
         </div>
 
-        {/* Detailed Attribute Rows */}
-        <div className="space-y-2 text-xs border-t border-b border-slate-100 py-3 my-2 font-mono">
-          <div className="flex items-center justify-between text-slate-600">
-            <span className="text-slate-400">Location</span>
-            <span className="font-semibold text-slate-800">17.4476, 78.3772</span>
+        {/* Detailed Attribute Rows - Clean 2-Column Responsive Grid (No Squishing) */}
+        <div className="grid grid-cols-2 gap-2 text-xs border-t border-b border-slate-100 py-3 my-2 font-mono">
+          <div className="bg-slate-50/90 p-2 rounded-xl border border-slate-100">
+            <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Location</span>
+            <span className="font-semibold text-slate-800 text-[11px] block mt-0.5 font-mono">17.4476, 78.3772</span>
           </div>
-          <div className="flex items-center justify-between text-slate-600">
-            <span className="text-slate-400">Road</span>
-            <span className="font-semibold text-slate-800 font-sans">Hitec City Main Road</span>
+
+          <div className="bg-slate-50/90 p-2 rounded-xl border border-slate-100">
+            <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Road</span>
+            <span className="font-semibold text-slate-800 text-[11px] block mt-0.5 truncate font-sans" title="Hitec City Main Road">
+              Hitec City Main
+            </span>
           </div>
-          <div className="flex items-center justify-between text-slate-600">
-            <span className="text-slate-400">Direction</span>
-            <span className="font-semibold text-slate-800">North-East (45°)</span>
+
+          <div className="bg-slate-50/90 p-2 rounded-xl border border-slate-100">
+            <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Direction</span>
+            <span className="font-semibold text-slate-800 text-[11px] block mt-0.5">North-East (45°)</span>
           </div>
-          <div className="flex items-center justify-between text-slate-600">
-            <span className="text-slate-400">Stop Line</span>
-            <span className="font-bold text-red-600">{distance} m before</span>
+
+          <div className="bg-slate-50/90 p-2 rounded-xl border border-slate-100">
+            <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Stop Line</span>
+            <span className="font-bold text-red-600 text-[11px] block mt-0.5">{distance} m before</span>
           </div>
-          <div className="flex items-center justify-between text-slate-600">
-            <span className="text-slate-400">Cycle Time</span>
-            <span className="font-semibold text-slate-800">120 sec (Simulated)</span>
+
+          <div className="bg-slate-50/90 p-2 rounded-xl border border-slate-100">
+            <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Cycle Time</span>
+            <span className="font-semibold text-slate-800 text-[11px] block mt-0.5">120s (Active)</span>
           </div>
-          <div className="flex items-center justify-between text-slate-600">
-            <span className="text-slate-400">Source</span>
-            <span className="font-semibold text-emerald-700">Virtual RIU + Map</span>
+
+          <div className="bg-slate-50/90 p-2 rounded-xl border border-slate-100">
+            <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Source</span>
+            <span className="font-semibold text-emerald-700 text-[11px] block mt-0.5 truncate">Virtual RIU</span>
           </div>
-          <div className="flex items-center justify-between text-slate-600">
-            <span className="text-slate-400">Confidence</span>
-            <span className="font-bold text-indigo-700">98% (PyTorch CNN Fusion)</span>
+
+          <div className="col-span-2 bg-indigo-50/70 border border-indigo-100/80 p-2 px-2.5 rounded-xl flex items-center justify-between">
+            <span className="text-[10px] uppercase font-bold text-indigo-900 tracking-wider">Confidence</span>
+            <span className="font-bold text-indigo-700 text-[11px]">98% (PyTorch Fusion)</span>
           </div>
         </div>
       </div>

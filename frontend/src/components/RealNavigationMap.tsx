@@ -73,9 +73,7 @@ export const RealNavigationMap: React.FC<Props> = ({
     const map = mapRef.current;
     
     let tiles = [
-      'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-      'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-      'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
     ];
     
     if (type === 'dark') {
@@ -86,7 +84,7 @@ export const RealNavigationMap: React.FC<Props> = ({
       ];
     } else if (type === 'osm') {
       tiles = [
-        'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
       ];
     } else if (type === 'satellite') {
       tiles = [
@@ -125,12 +123,10 @@ export const RealNavigationMap: React.FC<Props> = ({
           'osm-tiles': {
             type: 'raster',
             tiles: [
-              'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-              'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-              'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'
             ],
             tileSize: 256,
-            attribution: '© OpenStreetMap, CartoDB'
+            attribution: '© Esri, OpenStreetMap'
           }
         },
         layers: [
@@ -740,80 +736,80 @@ export const RealNavigationMap: React.FC<Props> = ({
       </div>
 
       {/* 4. LOWER TELEMETRY STRIP (5 Hardware Modules) */}
-      <div className="p-3.5 px-6 bg-white border-t border-slate-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-xs">
+      <div className="p-3 px-5 bg-white border-t border-slate-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
         
         {/* Module 1: Camera */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-xl bg-slate-100 text-slate-700 shrink-0">
             <Camera className="w-4 h-4" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono">Camera</span>
-            <div className="flex items-center gap-1.5 font-bold text-slate-900">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A]" />
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono truncate">Camera</span>
+            <div className="flex items-center gap-1.5 font-bold text-slate-900 leading-tight">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A] shrink-0" />
               <span>Active</span>
-              <span className="text-slate-400 font-normal font-mono text-[11px]">30 FPS</span>
+              <span className="text-slate-400 font-normal font-mono text-[10px]">30fps</span>
             </div>
           </div>
         </div>
 
         {/* Module 2: GPS */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-xl bg-slate-100 text-slate-700 shrink-0">
             <MapPin className="w-4 h-4" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono">GPS</span>
-            <div className="flex items-center gap-1.5 font-bold text-slate-900">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A]" />
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono truncate">GNSS</span>
+            <div className="flex items-center gap-1.5 font-bold text-slate-900 leading-tight">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A] shrink-0" />
               <span>Locked</span>
-              <span className="text-slate-400 font-normal font-mono text-[11px]">±6 m</span>
+              <span className="text-slate-400 font-normal font-mono text-[10px]">±6m</span>
             </div>
           </div>
         </div>
 
         {/* Module 3: V2X / SPaT */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-xl bg-slate-100 text-slate-700 shrink-0">
             <Radio className="w-4 h-4" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono">V2X / SPaT</span>
-            <div className="flex items-center gap-1.5 font-bold text-slate-900">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A]" />
-              <span>Connected</span>
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono truncate">V2X SPaT</span>
+            <div className="flex items-center gap-1.5 font-bold text-slate-900 leading-tight">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A] shrink-0" />
+              <span className="truncate">Synced</span>
             </div>
-            <div className="text-[10px] text-slate-400 font-mono">Signal data received</div>
+            <div className="text-[9px] text-slate-400 font-mono truncate">5.9GHz Live</div>
           </div>
         </div>
 
         {/* Module 4: AI Model */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-xl bg-slate-100 text-slate-700 shrink-0">
             <Cpu className="w-4 h-4" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono">AI Model</span>
-            <div className="flex items-center gap-1.5 font-bold text-slate-900">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A]" />
-              <span>Running</span>
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono truncate">AI Model</span>
+            <div className="flex items-center gap-1.5 font-bold text-slate-900 leading-tight">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A] shrink-0" />
+              <span className="truncate">EffNet-B0</span>
             </div>
-            <div className="text-[10px] text-slate-400 font-mono">EfficientNet-B0</div>
+            <div className="text-[9px] text-slate-400 font-mono truncate">96.3% Conf</div>
           </div>
         </div>
 
         {/* Module 5: Decision Engine */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-xl bg-slate-100 text-slate-700 shrink-0">
             <Cog className="w-4 h-4" />
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono">Decision Engine</span>
-            <div className="flex items-center gap-1.5 font-bold text-slate-900">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A]" />
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-mono truncate">Rules</span>
+            <div className="flex items-center gap-1.5 font-bold text-slate-900 leading-tight">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00875A] shrink-0" />
               <span>Active</span>
             </div>
-            <div className="text-[10px] text-slate-400 font-mono">Processing rules</div>
+            <div className="text-[9px] text-slate-400 font-mono truncate">10ms Loop</div>
           </div>
         </div>
 

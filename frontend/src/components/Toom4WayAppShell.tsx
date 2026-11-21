@@ -37,6 +37,7 @@ import { CookieSettingsView, PrivacyPolicyView, TermsOfServiceView } from './leg
 export interface UserPersona {
   id: string;
   role: string;
+  shortRole: string;
   name: string;
   badge: string;
   vehicle?: string;
@@ -50,6 +51,7 @@ export const PERSONAS: UserPersona[] = [
   {
     id: 'enforcement_officer',
     role: 'Enforcement Adjudication Officer',
+    shortRole: 'Enforcement Incharge',
     name: 'Insp. K. Sridhar, TPS',
     badge: 'TS-HYD-7701',
     jurisdiction: 'Cyberabad Traffic Ops (Div II)',
@@ -60,6 +62,7 @@ export const PERSONAS: UserPersona[] = [
   {
     id: 'toc_controller',
     role: 'Traffic Operations Center (TOC) Controller',
+    shortRole: 'ATCS Director',
     name: 'Dr. P. Venkatesh',
     badge: 'TOC-DIR-04',
     jurisdiction: 'Hyderabad ATCS & Corridors',
@@ -70,6 +73,7 @@ export const PERSONAS: UserPersona[] = [
   {
     id: 'citizen_driver',
     role: 'Citizen Driver & Vehicle Custodian',
+    shortRole: 'Vehicle Owner',
     name: 'Devanboina Tharun',
     badge: 'TS 09 EV 4412',
     vehicle: 'Tata Nexon EV Max',
@@ -81,6 +85,7 @@ export const PERSONAS: UserPersona[] = [
   {
     id: 'transit_dispatcher',
     role: 'Transit & Commercial Fleet Dispatcher',
+    shortRole: 'Fleet Dispatcher',
     name: 'S. Rama Rao',
     badge: 'TSRTC-FLEET-90',
     jurisdiction: 'Public Transit & Heavy Transport',
@@ -558,28 +563,6 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
             <RoadSenseLogo size="md" />
           </div>
 
-          {/* Active Persona Fast Indicator */}
-          <div className="p-2.5 bg-[#F1F5F9] rounded-xl border border-[#E2E8F0] flex items-center justify-between">
-            <div className="flex items-center gap-2 overflow-hidden">
-              <div className={`w-6 h-6 rounded-lg ${selectedPersona.badgeColor} flex items-center justify-center font-bold text-[10px] shrink-0`}>
-                {selectedPersona.category === 'Enforcement' && <Shield className="w-3.5 h-3.5" />}
-                {selectedPersona.category === 'Operations' && <Activity className="w-3.5 h-3.5" />}
-                {selectedPersona.category === 'Citizen' && <Car className="w-3.5 h-3.5" />}
-                {selectedPersona.category === 'Transit' && <Bus className="w-3.5 h-3.5" />}
-              </div>
-              <div className="truncate">
-                <div className="text-[11px] font-bold text-slate-900 truncate leading-none">{selectedPersona.name}</div>
-                <div className="text-[9px] text-slate-500 font-mono truncate mt-0.5">{selectedPersona.badge}</div>
-              </div>
-            </div>
-            <button
-              onClick={() => setProfileDropdownOpen(true)}
-              className="text-[10px] text-[#0A2540] hover:underline font-semibold shrink-0 cursor-pointer pl-1"
-            >
-              Switch
-            </button>
-          </div>
-
           {/* Render All Navigation Items */}
           {renderNavLinks()}
 
@@ -635,8 +618,8 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-[#E2E8F0] px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-2xs">
           
-          {/* Left: Mobile Menu Toggle & Search Bar */}
-          <div className="flex items-center gap-3 flex-1 max-w-lg">
+          {/* Left: Mobile Menu Toggle & Search Bar with Guaranteed Min Width */}
+          <div className="flex items-center gap-3 flex-1 max-w-sm sm:max-w-md min-w-[200px]">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
@@ -649,7 +632,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input 
                 type="text"
-                placeholder="Search location, road event, vehicle, or run simulation..."
+                placeholder="Search road event, vehicle, plate, or junction..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 bg-[#F8FAFC] hover:bg-slate-100/80 focus:bg-white text-xs rounded-xl border border-[#E2E8F0] focus:outline-none focus:ring-2 focus:ring-[#0A2540]/20 focus:border-[#0A2540] text-slate-900 transition-colors"
@@ -658,7 +641,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           </div>
 
           {/* Right: Live NTP Clock, Location, Live Status, Profile */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             
             {/* Live NTP-Synchronized IST Clock */}
             <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-[#F1F5F9] rounded-xl text-xs font-mono border border-[#E2E8F0] text-slate-700 select-none">
@@ -674,35 +657,18 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
             </div>
 
             {/* Jurisdiction Badge */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#F8FAFC] rounded-xl text-xs font-medium text-slate-700 border border-[#E2E8F0]">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#F8FAFC] rounded-xl text-xs font-medium text-slate-700 border border-[#E2E8F0]">
               <MapPin className="w-3.5 h-3.5 text-slate-500" />
               <span>Hyderabad, TS</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </div>
 
             {/* Live Connected Status */}
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-[#E6F8F3] rounded-xl text-xs font-semibold text-[#00875A] border border-[#00875A]/20">
+            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#E6F8F3] rounded-xl text-xs font-semibold text-[#00875A] border border-[#00875A]/20">
               <span className="w-2 h-2 rounded-full bg-[#00875A] animate-pulse" />
               <span>Live Connected</span>
               <span className="text-[10px] text-slate-600 font-normal pl-1 border-l border-emerald-300">All Systems Online</span>
             </div>
-
-            {/* Direct Console Shortcuts */}
-            <button
-              onClick={() => handleNav('traffic_dept')}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#0A2540] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#071a2e] cursor-pointer transition-all"
-            >
-              <Building2 className="w-3.5 h-3.5 text-white" />
-              <span>Traffic Ops</span>
-            </button>
-
-            <button
-              onClick={() => handleNav('ui_ux_debugger')}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-800 rounded-xl text-xs font-semibold hover:bg-slate-200 cursor-pointer transition-all border border-slate-300"
-            >
-              <Layers className="w-3.5 h-3.5 text-slate-600" />
-              <span>UI Debugger</span>
-            </button>
 
             {/* Alert Notifications */}
             <div className="relative p-2 text-slate-600 hover:text-slate-900 cursor-pointer rounded-xl hover:bg-slate-100">
@@ -722,9 +688,9 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
                 <div className={`w-8 h-8 rounded-full ${selectedPersona.badgeColor} font-bold text-xs flex items-center justify-center shadow-xs shrink-0`}>
                   {selectedPersona.name.charAt(0)}
                 </div>
-                <div className="hidden sm:block text-left max-w-[140px]">
-                  <div className="text-xs font-bold text-slate-900 leading-tight truncate">{selectedPersona.name}</div>
-                  <div className="text-[10px] text-slate-500 font-medium truncate mt-0.5">{selectedPersona.role}</div>
+                <div className="hidden sm:block text-left">
+                  <div className="text-xs font-bold text-slate-900 leading-tight whitespace-nowrap">{selectedPersona.name}</div>
+                  <div className="text-[10px] text-slate-500 font-medium whitespace-nowrap mt-0.5">{selectedPersona.shortRole}</div>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>

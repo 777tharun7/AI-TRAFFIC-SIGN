@@ -23,10 +23,10 @@ export const LivePerceptionPipelineDeck: React.FC<Props> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
         
         {/* CARD 1: 1. Live Camera Input */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-2.5 flex flex-col justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-            <span className="w-2 h-2 rounded-full bg-[#00875A]" />
-            <span>1. Live Camera Input</span>
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs space-y-2.5 flex flex-col justify-between min-w-0">
+          <div className="flex items-center gap-1.5 text-[11px] xl:text-xs font-bold text-slate-900 truncate">
+            <span className="w-2 h-2 rounded-full bg-[#00875A] shrink-0" />
+            <span className="truncate">1. Live Camera Input</span>
           </div>
 
           {/* Road Scene with Bounding Box Overlays */}

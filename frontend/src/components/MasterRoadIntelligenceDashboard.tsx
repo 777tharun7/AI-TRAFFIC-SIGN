@@ -213,11 +213,11 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
                 </div>
 
                 {/* Upcoming Advisory */}
-                <div className="mt-2 bg-slate-900/60 rounded-lg p-1.5 border border-slate-800 flex items-center gap-2 text-[9px]">
-                  <span className="text-amber-400">⚠️</span>
-                  <div>
+                <div className="mt-2 bg-slate-900/60 rounded-lg p-1.5 border border-slate-800 flex items-center gap-2 text-[9px] min-w-0">
+                  <span className="text-amber-400 shrink-0">⚠️</span>
+                  <div className="min-w-0 flex-1">
                     <span className="text-slate-400 text-[8px] block">Next</span>
-                    <span className="font-bold text-slate-200">Speed Breaker 250 m</span>
+                    <span className="font-bold text-slate-200 truncate block">Speed Breaker 250m</span>
                   </div>
                 </div>
 
