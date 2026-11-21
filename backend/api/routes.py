@@ -15,7 +15,10 @@ from pydantic import BaseModel
 from ..models.schemas import (
     RoadEvent, VirtualRIU, VirtualRIUCreate, TrafficSignal, VehicleState,
     DetectionResponse, DetectionItem, FusedEvent, PriorityLevel, VehicleType,
-    EVChargingStation, TrafficIncident, CorridorTrafficStatus
+    EVChargingStation, TrafficIncident, CorridorTrafficStatus,
+    VehicleRegistryRecord, GVIDDeviceRecord, GVIDTelemetryPacket,
+    ViolationEvidencePackage, EvidenceStatus, EChallanRecord,
+    ChallanPaymentRequest, ChallanDisputeRequest, PublicTransportBus, PublicTransportRoute
 )
 from backend.services.riu_service import riu_service
 from backend.services.signal_simulator import signal_simulator
@@ -24,6 +27,12 @@ from backend.services.fusion_engine import fusion_engine
 from backend.services.vehicle_simulator import vehicle_simulator, HYDERABAD_ROUTES
 from backend.services.cvdv_engine import cvdv_engine
 from backend.services.traffic_dept_service import traffic_dept_service
+from backend.services.vehicle_registry_service import vehicle_registry_service
+from backend.services.gvid_service import gvid_service
+from backend.services.overspeed_engine import overspeed_engine
+from backend.services.evidence_service import evidence_service
+from backend.services.echallan_service import echallan_service
+from backend.services.public_transport_service import public_transport_service
 from ml.inference.detector import TrafficSignDetector
 
 router = APIRouter()
@@ -158,7 +167,21 @@ async def delete_riu(riu_id: str):
 async def get_signals():
     return signal_simulator.get_all_signals()
 
-# ----------------- VEHICLE SIMULATOR -----------------
+# ----------------- VEHICLE SIMULATOR & REGISTRY -----------------
+@router.get("/vehicles/registry", response_model=List[VehicleRegistryRecord], summary="Search and list official vehicle registry records")
+async def get_vehicle_registry(
+    query: Optional[str] = Query(None, description="Search plate, owner name, or GVID ID"),
+    category: Optional[str] = Query(None, description="Filter by vehicle category")
+):
+    return vehicle_registry_service.get_all(query=query, category=category)
+
+@router.get("/vehicles/registry/{reg_num}", response_model=VehicleRegistryRecord, summary="Get single vehicle registration & compliance details")
+async def get_vehicle_by_plate(reg_num: str):
+    record = vehicle_registry_service.get_by_plate(reg_num)
+    if not record:
+        raise HTTPException(status_code=404, detail="Vehicle registration not found in registry")
+    return record
+
 @router.get("/vehicles", response_model=List[VehicleState], summary="Get state of all active vehicles")
 async def get_vehicles():
     return [vehicle_simulator.step(0.0)]
@@ -350,3 +373,114 @@ class EmergencyPreemptionRequest(BaseModel):
 @router.post("/traffic-dept/emergency-preemption", summary="Trigger Emergency Vehicle Priority (EVP) Green-Wave Preemption")
 async def trigger_emergency_preemption(req: EmergencyPreemptionRequest):
     return traffic_dept_service.trigger_emergency_preemption(req.route_id, req.enable)
+
+# ----------------- GVID DEVICE REGISTRY & TELEMETRY -----------------
+@router.get("/gvid/devices", response_model=List[GVIDDeviceRecord], summary="List all Government Vehicle Intelligence Devices")
+async def get_all_gvid_devices():
+    return gvid_service.get_all_devices()
+
+@router.get("/gvid/devices/{device_id}", response_model=GVIDDeviceRecord, summary="Get single GVID device health, calibration & tamper status")
+async def get_gvid_device(device_id: str):
+    dev = gvid_service.get_device(device_id)
+    if not dev:
+        raise HTTPException(status_code=404, detail="GVID Device ID not found")
+    return dev
+
+@router.post("/gvid/telemetry", summary="Ingest GVID telemetry packet (CAN + GNSS fused)")
+async def ingest_gvid_telemetry(packet: GVIDTelemetryPacket):
+    return gvid_service.ingest_telemetry(packet)
+
+# ----------------- OVERSPEED & ROAD INTELLIGENCE -----------------
+@router.get("/overspeed/evaluate", summary="Evaluate speed compliance against road segment rules & category tolerances")
+async def evaluate_overspeed(
+    speed_kmh: float = Query(..., description="Measured vehicle speed in km/h"),
+    segment_id: str = Query("HYD-ROAD-101", description="Road segment ID"),
+    category: str = Query("FOUR_WHEELER", description="Vehicle Category"),
+    sustained_seconds: float = Query(3.5, description="Sustained seconds over speed limit"),
+    weather_rain: bool = Query(False, description="Whether rainy conditions require lower limits")
+):
+    return overspeed_engine.evaluate_compliance(
+        measured_speed_kmh=speed_kmh,
+        segment_id=segment_id,
+        category=category,
+        sustained_seconds=sustained_seconds,
+        weather_rain=weather_rain
+    )
+
+# ----------------- EVIDENCE COLLECTION & REVIEW (SEC 167A CMVR) -----------------
+@router.get("/evidence/queue", response_model=List[ViolationEvidencePackage], summary="Get evidence packages for traffic officer review")
+async def get_evidence_queue(status: Optional[EvidenceStatus] = Query(None)):
+    return evidence_service.get_queue(status)
+
+@router.get("/evidence/{evidence_id}", response_model=ViolationEvidencePackage, summary="Get single violation evidence dossier")
+async def get_evidence_dossier(evidence_id: str):
+    pkg = evidence_service.get_by_id(evidence_id)
+    if not pkg:
+        raise HTTPException(status_code=404, detail="Evidence package not found")
+    return pkg
+
+class EvidenceReviewRequest(BaseModel):
+    decision: str  # "APPROVE" or "DISMISS"
+    officer_id: Optional[str] = "OFF-TG-4402"
+    officer_name: Optional[str] = "Insp. K. Sridhar (Traffic West)"
+    notes: Optional[str] = None
+
+@router.post("/evidence/{evidence_id}/review", response_model=ViolationEvidencePackage, summary="Officer sign-off (Approve/Dismiss) on violation evidence")
+async def review_evidence_package(evidence_id: str, req: EvidenceReviewRequest):
+    pkg = evidence_service.review_evidence(
+        evidence_id=evidence_id,
+        decision=req.decision,
+        officer_id=req.officer_id or "OFF-TG-4402",
+        officer_name=req.officer_name or "Insp. K. Sridhar (Traffic West)",
+        notes=req.notes
+    )
+    if not pkg:
+        raise HTTPException(status_code=404, detail="Evidence package not found")
+    return pkg
+
+# ----------------- OFFICIAL E-CHALLAN WORKFLOW -----------------
+@router.get("/challans", response_model=List[EChallanRecord], summary="List all official e-challans or filter by vehicle plate")
+async def get_all_challans(plate: Optional[str] = Query(None)):
+    return echallan_service.get_all(plate)
+
+@router.get("/challans/{challan_id}", response_model=EChallanRecord, summary="Get single e-challan record")
+async def get_single_challan(challan_id: str):
+    ch = echallan_service.get_by_id(challan_id)
+    if not ch:
+        raise HTTPException(status_code=404, detail="Challan record not found")
+    return ch
+
+@router.post("/challans/{challan_id}/pay", response_model=EChallanRecord, summary="Simulate citizen payment for e-challan")
+async def pay_challan_endpoint(challan_id: str, req: ChallanPaymentRequest):
+    ch = echallan_service.pay_challan(challan_id, req.payment_mode)
+    if not ch:
+        raise HTTPException(status_code=404, detail="Challan record not found")
+    return ch
+
+@router.post("/challans/{challan_id}/dispute", response_model=EChallanRecord, summary="File official citizen grievance/dispute against e-challan")
+async def dispute_challan_endpoint(challan_id: str, req: ChallanDisputeRequest):
+    ch = echallan_service.dispute_challan(challan_id, req.dispute_reason, req.citizen_contact)
+    if not ch:
+        raise HTTPException(status_code=404, detail="Challan record not found")
+    return ch
+
+class GenerateChallanRequest(BaseModel):
+    evidence_id: str
+    penalty_amount_inr: Optional[int] = 1500
+
+@router.post("/challans/generate-from-evidence", response_model=EChallanRecord, summary="Generate official e-Challan from officer-approved evidence")
+async def generate_challan_from_evidence(req: GenerateChallanRequest):
+    ch = echallan_service.create_from_evidence(req.evidence_id, req.penalty_amount_inr or 1500)
+    if not ch:
+        raise HTTPException(status_code=400, detail="Cannot generate challan: evidence not found or not approved")
+    return ch
+
+# ----------------- PUBLIC TRANSPORT & FLEET -----------------
+@router.get("/transit/buses", response_model=List[PublicTransportBus], summary="List all active TSRTC city buses with delays & EV battery")
+async def get_transit_buses():
+    return public_transport_service.get_all_buses()
+
+@router.get("/transit/routes", response_model=List[PublicTransportRoute], summary="List public transport transit corridors and reliability")
+async def get_transit_routes():
+    return public_transport_service.get_all_routes()
+

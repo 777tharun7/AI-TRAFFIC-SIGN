@@ -5,7 +5,8 @@ import {
   Bell, ChevronDown, Check, Maximize2, Plus, Minus, 
   Compass, ArrowRight, AlertTriangle, Activity, Zap, RefreshCw,
   Camera, Sliders, Car, Crosshair, Sparkles, CheckCircle2,
-  LogIn, User, Shield, Menu, X, LogOut, Building2
+  LogIn, User, Shield, Menu, X, LogOut, Building2,
+  FileCheck, Bus, FileText, ShieldAlert, CreditCard
 } from 'lucide-react';
 import { VehicleState, VirtualRIU, TrafficSignal } from '../types';
 import { RoadSenseLogo } from './RoadSenseLogo';
@@ -22,6 +23,11 @@ import { AIModelCenter } from './AIModelCenter';
 import { SystemStateInventoryView } from './states/SystemStateInventoryView';
 import { UIUXLayoutStudio } from './UIUXLayoutStudio';
 import { TrafficDeptPortal } from './TrafficDeptPortal';
+import { VehicleRegistryView } from './VehicleRegistryView';
+import { GVIDRegistryView } from './GVIDRegistryView';
+import { EvidenceChallanWorkflowView } from './EvidenceChallanWorkflowView';
+import { CitizenPortalView } from './CitizenPortalView';
+import { FleetOperationsView } from './FleetOperationsView';
 import { LoginView, RegisterView, VerifyEmailView, ForgotPasswordView } from './auth/AuthPages';
 import { CookieSettingsView, PrivacyPolicyView, TermsOfServiceView } from './legal/LegalPages';
 
@@ -126,6 +132,85 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
               </span>
             </button>
           </nav>
+
+          {/* VEHICLES & ENFORCEMENT */}
+          <div className="space-y-1 pt-1">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-[#94A3B8] px-3 pb-1">
+              Vehicles & Enforcement
+            </div>
+
+            <button
+              onClick={() => handleNav('vehicle_registry')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'vehicle_registry'
+                  ? 'bg-[#E6F8F3] text-[#00875A] font-bold'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <Car className="w-4 h-4 text-slate-400" />
+              <span>Vehicle Registry</span>
+            </button>
+
+            <button
+              onClick={() => handleNav('gvid_registry')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'gvid_registry'
+                  ? 'bg-[#E6F8F3] text-[#00875A] font-bold'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <Cpu className="w-4 h-4 text-slate-400" />
+              <span>GVID Hardware Hub</span>
+            </button>
+
+            <button
+              onClick={() => handleNav('evidence_workflow')}
+              className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'evidence_workflow'
+                  ? 'bg-[#E6F8F3] text-[#00875A] font-bold'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <FileCheck className="w-4 h-4 text-slate-400" />
+                <span>Evidence & e-Challan</span>
+              </div>
+              <span className="text-[9px] font-mono px-1 py-0.2 bg-amber-100 text-amber-800 rounded font-bold">
+                167A
+              </span>
+            </button>
+          </div>
+
+          {/* CITIZEN & TRANSIT */}
+          <div className="space-y-1 pt-1">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-[#94A3B8] px-3 pb-1">
+              Citizen & Transit
+            </div>
+
+            <button
+              onClick={() => handleNav('citizen_portal')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'citizen_portal'
+                  ? 'bg-[#E6F8F3] text-[#00875A] font-bold'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <User className="w-4 h-4 text-slate-400" />
+              <span>Citizen Portal & Pay</span>
+            </button>
+
+            <button
+              onClick={() => handleNav('fleet_operations')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'fleet_operations'
+                  ? 'bg-[#E6F8F3] text-[#00875A] font-bold'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <Bus className="w-4 h-4 text-slate-400" />
+              <span>Public Transit Fleet</span>
+            </button>
+          </div>
 
           {/* INTELLIGENCE LAB */}
           <div className="space-y-1 pt-1">
@@ -527,6 +612,36 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
                 onControl={onControl}
                 onNavigateTab={handleNav}
               />
+            </div>
+          )}
+
+          {currentView === 'vehicle_registry' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <VehicleRegistryView onNavigateTab={handleNav} />
+            </div>
+          )}
+
+          {currentView === 'gvid_registry' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <GVIDRegistryView />
+            </div>
+          )}
+
+          {currentView === 'evidence_workflow' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <EvidenceChallanWorkflowView />
+            </div>
+          )}
+
+          {currentView === 'citizen_portal' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <CitizenPortalView />
+            </div>
+          )}
+
+          {currentView === 'fleet_operations' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <FleetOperationsView />
             </div>
           )}
 

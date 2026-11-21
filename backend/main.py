@@ -69,8 +69,9 @@ data_dir_path = os.path.join(base_project_dir, "data")
 if os.path.exists(data_dir_path):
     app.mount("/data", StaticFiles(directory=data_dir_path), name="data")
 
-# Include API Router
-app.include_router(api_router, prefix=settings.API_V1_STR)
+# Include API Router for both /api and /api/v1
+app.include_router(api_router, prefix="/api")
+app.include_router(api_router, prefix="/api/v1")
 
 # ----------------- WEBSOCKET ENDPOINTS -----------------
 @app.websocket("/ws/vehicle/{vehicle_id}")
