@@ -23,6 +23,8 @@ import { AIModelCenter } from './AIModelCenter';
 import { SystemStateInventoryView } from './states/SystemStateInventoryView';
 import { UIUXLayoutStudio } from './UIUXLayoutStudio';
 import { TrafficDeptPortal } from './TrafficDeptPortal';
+import { TrafficOperationsOverview } from './TrafficOperationsOverview';
+import { TharunDemonstrationStudio } from './TharunDemonstrationStudio';
 import { VehicleRegistryView } from './VehicleRegistryView';
 import { GVIDRegistryView } from './GVIDRegistryView';
 import { EvidenceChallanWorkflowView } from './EvidenceChallanWorkflowView';
@@ -50,11 +52,11 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
   onControl,
   onReload
 }) => {
-  const [currentView, setCurrentView] = useState<string>('home');
+  const [currentView, setCurrentView] = useState<string>('operations_overview');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>({
-    name: 'Admin',
-    email: 'admin@toom4way.ai'
+    name: 'Insp. K. Sridhar',
+    email: 'k.sridhar@cyberabadpolice.gov.in'
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
@@ -80,15 +82,37 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           {/* MAIN Navigation */}
           <nav className="space-y-1">
             <button
-              onClick={() => handleNav('home')}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
-                currentView === 'home'
+              onClick={() => handleNav('operations_overview')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'operations_overview'
                   ? 'bg-[#E6F8F3] text-[#00875A] font-bold shadow-2xs'
                   : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
               }`}
             >
-              <Home className={`w-4 h-4 ${currentView === 'home' ? 'text-[#00875A]' : 'text-slate-400'}`} />
-              <span>Home (Product)</span>
+              <div className="flex items-center gap-3">
+                <Building2 className={`w-4 h-4 ${currentView === 'operations_overview' ? 'text-[#00875A]' : 'text-slate-400'}`} />
+                <span>Command Overview</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-bold">
+                LIVE
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleNav('tharun_demo')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'tharun_demo'
+                  ? 'bg-indigo-50 text-indigo-900 font-bold shadow-2xs border border-indigo-200'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Compass className={`w-4 h-4 ${currentView === 'tharun_demo' ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <span>Tharun's Story</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-indigo-100 text-indigo-800 rounded font-bold">
+                8 SCENES
+              </span>
             </button>
 
             <button
@@ -116,6 +140,18 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
             </button>
 
             <button
+              onClick={() => handleNav('home')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'home'
+                  ? 'bg-[#E6F8F3] text-[#00875A] font-bold shadow-2xs'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <Home className={`w-4 h-4 ${currentView === 'home' ? 'text-[#00875A]' : 'text-slate-400'}`} />
+              <span>Product Briefing</span>
+            </button>
+
+            <button
               onClick={() => handleNav('traffic_dept')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
                 currentView === 'traffic_dept'
@@ -124,8 +160,8 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
               }`}
             >
               <div className="flex items-center gap-3">
-                <Building2 className={`w-4 h-4 ${currentView === 'traffic_dept' ? 'text-[#00875A]' : 'text-slate-400'}`} />
-                <span>Traffic Ops & EV Portal</span>
+                <Activity className={`w-4 h-4 ${currentView === 'traffic_dept' ? 'text-[#00875A]' : 'text-slate-400'}`} />
+                <span>Corridors & EVP</span>
               </div>
               <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-bold">
                 EVP
@@ -507,6 +543,18 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
 
         {/* View Router Main Body */}
         <main className="flex-1">
+          {currentView === 'operations_overview' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <TrafficOperationsOverview onNavigateTab={handleNav} />
+            </div>
+          )}
+
+          {currentView === 'tharun_demo' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <TharunDemonstrationStudio onNavigateTab={handleNav} />
+            </div>
+          )}
+
           {currentView === 'home' && (
             <Toom4WayPublicHome
               vehicle={vehicle}

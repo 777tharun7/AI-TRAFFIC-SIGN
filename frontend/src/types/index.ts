@@ -246,7 +246,118 @@ export type VehicleCategory =
 
 export type DocumentStatus = "VALID" | "EXPIRING_SOON" | "EXPIRED";
 export type ComplianceBadge = "FULLY_COMPLIANT" | "DOCUMENT_EXPIRED" | "UNREGISTERED_DEVICE" | "ACTIVE_VIOLATIONS";
-export type EvidenceStatus = "PENDING_REVIEW" | "OFFICER_APPROVED" | "OFFICER_DISMISSED" | "CHALLAN_ISSUED";
+export type OperationalCategory = "PREVENTION" | "TRAFFIC_MANAGEMENT" | "ENFORCEMENT";
+
+export type ViolationCategory = 
+  | "RED_LIGHT_VIOLATION"
+  | "STOP_LINE_VIOLATION"
+  | "PEDESTRIAN_CROSSING_OBSTRUCTION"
+  | "WRONG_SIDE_DRIVING"
+  | "OVERSPEEDING"
+  | "NO_HELMET"
+  | "NO_SEATBELT"
+  | "MOBILE_PHONE_USE"
+  | "ILLEGAL_PARKING"
+  | "WRONG_LANE_DRIVING"
+  | "EMERGENCY_VEHICLE_OBSTRUCTION"
+  | "OVERLOADED_GOODS_VEHICLE"
+  | "ILLEGAL_OVERTAKING"
+  | "RESTRICTED_ENTRY_VIOLATION"
+  | "JUNCTION_BLOCKING_GRIDLOCK";
+
+export type LegalClearanceStatus = 
+  | "CLEAR_VIOLATION"
+  | "LEGAL_CLEARANCE_GREEN_ENTRY"
+  | "STOPPED_OVER_LINE_ONLY"
+  | "PEDESTRIAN_BLOCKED"
+  | "EMERGENCY_EXEMPTION"
+  | "SENSOR_SYNC_FAILED";
+
+export type OfficerDecisionAction = 
+  | "VERIFY_EVIDENCE"
+  | "REQUEST_MORE_EVIDENCE"
+  | "REJECT_EVENT"
+  | "ESCALATE_INVESTIGATION"
+  | "APPROVE_CHALLAN";
+
+export type EvidenceStatus = 
+  | "PENDING_REVIEW" 
+  | "EVIDENCE_VERIFIED"
+  | "MORE_EVIDENCE_REQUESTED"
+  | "ESCALATED_INVESTIGATION"
+  | "OFFICER_APPROVED" 
+  | "OFFICER_DISMISSED" 
+  | "CHALLAN_ISSUED";
+
+export interface SignalControllerEvidence {
+  junction_id: string;
+  junction_name: string;
+  signal_id: string;
+  approach_lane: string;
+  green_start_time: string;
+  yellow_start_time: string;
+  red_start_time: string;
+  vehicle_stopline_cross_time: string;
+  seconds_into_red: number;
+  amber_duration_seconds: number;
+  stop_line_distance_m: number;
+  controller_status: string;
+  clearance_status: LegalClearanceStatus;
+}
+
+export interface EvidenceFrameSequence {
+  frame_approach_url: string;
+  frame_approach_label: string;
+  frame_crossing_url: string;
+  frame_crossing_label: string;
+  frame_junction_url: string;
+  frame_junction_label: string;
+  frame_anpr_plate_url: string;
+  plate_confidence_pct: number;
+  image_quality: string;
+}
+
+export interface LegalRuleMapping {
+  act_name: string;
+  section_code: string;
+  offence_title: string;
+  statutory_penalty_inr: number;
+  subsequent_offence_penalty_inr: number;
+  points_deduction: number;
+  requires_human_verification: boolean;
+  section_167a_admissible: boolean;
+  legal_defense_exemptions?: string[];
+}
+
+export interface DemoStoryScene {
+  scene_id: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  actor: string;
+  vehicle_plate: string;
+  location: string;
+  primary_view: string;
+  key_metrics: Record<string, any>;
+  operational_action: string;
+  is_active: boolean;
+}
+
+export interface InfrastructureRecommendation {
+  recommendation_id: string;
+  junction_id: string;
+  junction_name: string;
+  corridor_id: string;
+  violation_pattern: string;
+  historical_count_30d: number;
+  root_cause_analysis: string;
+  action_type: string;
+  recommended_intervention: string;
+  projected_violation_reduction_pct: number;
+  implementation_urgency: string;
+  estimated_cost_inr: number;
+  status: string;
+}
 
 export interface VehicleRegistryRecord {
   registration_number: string;
@@ -295,22 +406,34 @@ export interface ViolationEvidencePackage {
   evidence_id: string;
   vehicle_reg_num: string;
   vehicle_category: VehicleCategory;
+  operational_category?: OperationalCategory;
+  violation_category?: ViolationCategory;
+  violation_title?: string;
   gvid_device_id?: string | null;
+  camera_id?: string;
+  camera_calibration_cert?: string;
   road_segment_id: string;
   location_name: string;
   latitude: number;
   longitude: number;
   timestamp: string;
-  speed_measured_kmh: number;
-  speed_limit_applicable_kmh: number;
-  speed_uncertainty_kmh: number;
-  speed_delta_kmh: number;
-  sustained_duration_seconds: number;
+  speed_measured_kmh?: number | null;
+  speed_limit_applicable_kmh?: number | null;
+  speed_uncertainty_kmh?: number | null;
+  speed_delta_kmh?: number | null;
+  sustained_duration_seconds?: number | null;
   anpr_confidence_pct: number;
   anpr_plate_snapshot_url: string;
+  
+  signal_evidence?: SignalControllerEvidence | null;
+  frame_sequence?: EvidenceFrameSequence | null;
+  legal_rule?: LegalRuleMapping | null;
+  clearance_status?: LegalClearanceStatus;
+  
   telemetry_hash_sha256: string;
   evidence_seal_sha256: string;
-  status: "PENDING_REVIEW" | "OFFICER_APPROVED" | "OFFICER_DISMISSED" | "CHALLAN_ISSUED";
+  status: EvidenceStatus;
+  officer_action?: OfficerDecisionAction | null;
   officer_id?: string | null;
   officer_name?: string | null;
   officer_notes?: string | null;

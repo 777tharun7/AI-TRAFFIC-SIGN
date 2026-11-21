@@ -21,6 +21,24 @@ class EChallanService:
     def _init_mock_challans(self):
         records = [
             EChallanRecord(
+                challan_id="CHL-HYD-2026-0888",
+                challan_number="TS-HYD-2026-CH-088812",
+                vehicle_reg_num="TS 09 EV 4412",
+                owner_name="Devanboina Tharun",
+                violation_type="Disobedience of Mandatory Red Traffic Signal (Flagship Red Light Jump)",
+                motor_vehicle_act_section="Section 184 / Section 119 of Motor Vehicles Act, 1988 (Amended 2019)",
+                road_location="Cyber Towers Junction (Approach North)",
+                violation_timestamp="2026-11-22 00:15:22 IST",
+                speed_detected_kmh=38.4,
+                speed_limit_kmh=40.0,
+                penalty_amount_inr=1000,
+                evidence_package_id="EVD-2026-HYD-0001",
+                evidence_seal_sha256="e1a4b8c9d0e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4d6e8f4d7a8e2b0c9f1a3",
+                status=ChallanStatus.ISSUED,
+                due_date="2026-12-07",
+                issuing_authority="Hyderabad City Police - Cyberabad Traffic Branch"
+            ),
+            EChallanRecord(
                 challan_id="CHL-HYD-2026-0812",
                 challan_number="TS-HYD-2026-CH-081290",
                 vehicle_reg_num="TS 09 EV 4412",

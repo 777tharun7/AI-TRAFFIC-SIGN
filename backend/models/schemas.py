@@ -255,6 +255,84 @@ class DetectionResponse(BaseModel):
 # MASTER ITMS & VEHICLE INTELLIGENCE EXPANSION SCHEMAS
 # =====================================================================
 
+class OperationalCategory(str, Enum):
+    PREVENTION = "PREVENTION"
+    TRAFFIC_MANAGEMENT = "TRAFFIC_MANAGEMENT"
+    ENFORCEMENT = "ENFORCEMENT"
+
+class ViolationCategory(str, Enum):
+    RED_LIGHT_VIOLATION = "RED_LIGHT_VIOLATION"
+    STOP_LINE_VIOLATION = "STOP_LINE_VIOLATION"
+    PEDESTRIAN_CROSSING_OBSTRUCTION = "PEDESTRIAN_CROSSING_OBSTRUCTION"
+    WRONG_SIDE_DRIVING = "WRONG_SIDE_DRIVING"
+    OVERSPEEDING = "OVERSPEEDING"
+    NO_HELMET = "NO_HELMET"
+    NO_SEATBELT = "NO_SEATBELT"
+    MOBILE_PHONE_USE = "MOBILE_PHONE_USE"
+    ILLEGAL_PARKING = "ILLEGAL_PARKING"
+    WRONG_LANE_DRIVING = "WRONG_LANE_DRIVING"
+    EMERGENCY_VEHICLE_OBSTRUCTION = "EMERGENCY_VEHICLE_OBSTRUCTION"
+    OVERLOADED_GOODS_VEHICLE = "OVERLOADED_GOODS_VEHICLE"
+    ILLEGAL_OVERTAKING = "ILLEGAL_OVERTAKING"
+    RESTRICTED_ENTRY_VIOLATION = "RESTRICTED_ENTRY_VIOLATION"
+    JUNCTION_BLOCKING_GRIDLOCK = "JUNCTION_BLOCKING_GRIDLOCK"
+
+class LegalClearanceStatus(str, Enum):
+    CLEAR_VIOLATION = "CLEAR_VIOLATION"
+    LEGAL_CLEARANCE_GREEN_ENTRY = "LEGAL_CLEARANCE_GREEN_ENTRY"
+    STOPPED_OVER_LINE_ONLY = "STOPPED_OVER_LINE_ONLY"
+    PEDESTRIAN_BLOCKED = "PEDESTRIAN_BLOCKED"
+    EMERGENCY_EXEMPTION = "EMERGENCY_EXEMPTION"
+    SENSOR_SYNC_FAILED = "SENSOR_SYNC_FAILED"
+
+class OfficerDecisionAction(str, Enum):
+    VERIFY_EVIDENCE = "VERIFY_EVIDENCE"
+    REQUEST_MORE_EVIDENCE = "REQUEST_MORE_EVIDENCE"
+    REJECT_EVENT = "REJECT_EVENT"
+    ESCALATE_INVESTIGATION = "ESCALATE_INVESTIGATION"
+    APPROVE_CHALLAN = "APPROVE_CHALLAN"
+
+class SignalControllerEvidence(BaseModel):
+    junction_id: str = "JNC-CYBER-01"
+    junction_name: str = "Cyber Towers Junction (Approach North)"
+    signal_id: str = "SIG-CYBER-N1"
+    approach_lane: str = "Lane 2 (Straight / Right-turn)"
+    green_start_time: str
+    yellow_start_time: str
+    red_start_time: str
+    vehicle_stopline_cross_time: str
+    seconds_into_red: float = 1.8  # Positive means crossed after red began
+    amber_duration_seconds: float = 4.0
+    stop_line_distance_m: float = 2.4  # Metres past stop line
+    controller_status: str = "SYNCHRONIZED_NORMAL"
+    clearance_status: LegalClearanceStatus = LegalClearanceStatus.CLEAR_VIOLATION
+
+class EvidenceFrameSequence(BaseModel):
+    frame_approach_url: str = "/data/evidence/frames/cyber_approach.jpg"
+    frame_approach_label: str = "Approach: Approaching stop line during yellow-to-red transition"
+    frame_crossing_url: str = "/data/evidence/frames/cyber_crossing.jpg"
+    frame_crossing_label: str = "Crossing: Front axle crosses marked stop line at +1.8s into red phase"
+    frame_junction_url: str = "/data/evidence/frames/cyber_junction.jpg"
+    frame_junction_label: str = "Inside Junction: Vehicle enters intersection during prohibited phase"
+    frame_anpr_plate_url: str = "/data/evidence/frames/plate_crop_4412.jpg"
+    plate_confidence_pct: float = 98.6
+    image_quality: str = "OPTIMAL_HIGH_RES"  # OPTIMAL_HIGH_RES, ACCEPTABLE, LOW_OCCLUDED
+
+class LegalRuleMapping(BaseModel):
+    act_name: str = "Motor Vehicles Act, 1988 (Amended 2019)"
+    section_code: str = "Section 184 / Section 119"
+    offence_title: str = "Disobedience of Mandatory Traffic Signals (Red Light)"
+    statutory_penalty_inr: int = 1000
+    subsequent_offence_penalty_inr: int = 2000
+    points_deduction: int = 2
+    requires_human_verification: bool = True
+    section_167a_admissible: bool = True
+    legal_defense_exemptions: List[str] = [
+        "Emergency convoy escort",
+        "Clearing path for ambulance/fire service",
+        "Traffic police manual hand-signal directive overriding electronic signal"
+    ]
+
 class VehicleCategory(str, Enum):
     TWO_WHEELER = "TWO_WHEELER"
     FOUR_WHEELER = "FOUR_WHEELER"
@@ -361,6 +439,9 @@ class RoadSegmentRule(BaseModel):
 
 class EvidenceStatus(str, Enum):
     PENDING_REVIEW = "PENDING_REVIEW"
+    EVIDENCE_VERIFIED = "EVIDENCE_VERIFIED"
+    MORE_EVIDENCE_REQUESTED = "MORE_EVIDENCE_REQUESTED"
+    ESCALATED_INVESTIGATION = "ESCALATED_INVESTIGATION"
     OFFICER_APPROVED = "OFFICER_APPROVED"
     OFFICER_DISMISSED = "OFFICER_DISMISSED"
     CHALLAN_ISSUED = "CHALLAN_ISSUED"
@@ -369,22 +450,36 @@ class ViolationEvidencePackage(BaseModel):
     evidence_id: str
     vehicle_reg_num: str
     vehicle_category: VehicleCategory
+    operational_category: OperationalCategory = OperationalCategory.ENFORCEMENT
+    violation_category: ViolationCategory = ViolationCategory.RED_LIGHT_VIOLATION
+    violation_title: str = "Red-Light Violation"
     gvid_device_id: Optional[str] = None
-    road_segment_id: str
+    camera_id: str = "CAM-CYBER-04-PTZ"
+    camera_calibration_cert: str = "CERT-AIS140-CAM-2025-0812"
+    road_segment_id: str = "HYD-ROAD-101"
     location_name: str
     latitude: float
     longitude: float
     timestamp: str
-    speed_measured_kmh: float
-    speed_limit_applicable_kmh: float
-    speed_uncertainty_kmh: float = 1.5  # Calibration margin
-    speed_delta_kmh: float
-    sustained_duration_seconds: float
-    anpr_confidence_pct: float
+    speed_measured_kmh: Optional[float] = None
+    speed_limit_applicable_kmh: Optional[float] = None
+    speed_uncertainty_kmh: Optional[float] = 1.5  # Calibration margin
+    speed_delta_kmh: Optional[float] = None
+    sustained_duration_seconds: Optional[float] = None
+    anpr_confidence_pct: float = 98.4
     anpr_plate_snapshot_url: str
+    
+    # Detailed Signal & Stop-line Evidence
+    signal_evidence: Optional[SignalControllerEvidence] = None
+    frame_sequence: Optional[EvidenceFrameSequence] = None
+    legal_rule: Optional[LegalRuleMapping] = None
+    clearance_status: LegalClearanceStatus = LegalClearanceStatus.CLEAR_VIOLATION
+    
+    # Cryptographic Audit
     telemetry_hash_sha256: str
     evidence_seal_sha256: str
     status: EvidenceStatus = EvidenceStatus.PENDING_REVIEW
+    officer_action: Optional[OfficerDecisionAction] = None
     officer_id: Optional[str] = None
     officer_name: Optional[str] = None
     officer_notes: Optional[str] = None
@@ -464,4 +559,34 @@ class PublicTransportRoute(BaseModel):
     active_buses_count: int
     average_headway_minutes: int
     corridor_reliability_pct: float
+
+# ----------------- THARUN DEMO JOURNEY & ROAD SAFETY MODELS -----------------
+class DemoStoryScene(BaseModel):
+    scene_id: int  # 1 to 8
+    title: str
+    subtitle: str
+    description: str
+    actor: str = "Tharun (Demonstration User)"
+    vehicle_plate: str = "TS 09 EV 4412"
+    location: str
+    primary_view: str
+    key_metrics: Dict[str, Any]
+    operational_action: str
+    is_active: bool = False
+
+class InfrastructureRecommendation(BaseModel):
+    recommendation_id: str
+    junction_id: str
+    junction_name: str
+    corridor_id: str
+    violation_pattern: str
+    historical_count_30d: int
+    root_cause_analysis: str
+    action_type: str  # SIGNAL_RETIMING, ROAD_MARKING_REFRESH, SIGNAGE_UPGRADE, CIVIL_ENGINEERING
+    recommended_intervention: str
+    projected_violation_reduction_pct: float
+    implementation_urgency: str  # HIGH, MEDIUM, LOW
+    estimated_cost_inr: int
+    status: str = "PROPOSED_FOR_COMMISSIONER_APPROVAL"
+
 

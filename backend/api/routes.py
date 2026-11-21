@@ -18,7 +18,8 @@ from ..models.schemas import (
     EVChargingStation, TrafficIncident, CorridorTrafficStatus,
     VehicleRegistryRecord, GVIDDeviceRecord, GVIDTelemetryPacket,
     ViolationEvidencePackage, EvidenceStatus, EChallanRecord,
-    ChallanPaymentRequest, ChallanDisputeRequest, PublicTransportBus, PublicTransportRoute
+    ChallanPaymentRequest, ChallanDisputeRequest, PublicTransportBus, PublicTransportRoute,
+    DemoStoryScene, InfrastructureRecommendation, OfficerDecisionAction
 )
 from backend.services.riu_service import riu_service
 from backend.services.signal_simulator import signal_simulator
@@ -33,6 +34,8 @@ from backend.services.overspeed_engine import overspeed_engine
 from backend.services.evidence_service import evidence_service
 from backend.services.echallan_service import echallan_service
 from backend.services.public_transport_service import public_transport_service
+from backend.services.violation_engine import violation_engine
+from backend.services.tharun_journey_service import tharun_journey_service
 from ml.inference.detector import TrafficSignDetector
 
 router = APIRouter()
@@ -483,4 +486,79 @@ async def get_transit_buses():
 @router.get("/transit/routes", response_model=List[PublicTransportRoute], summary="List public transport transit corridors and reliability")
 async def get_transit_routes():
     return public_transport_service.get_all_routes()
+
+# ----------------- 15 STATUTORY VIOLATION SCENARIOS & OFFICER DESK -----------------
+@router.get("/violations", response_model=List[ViolationEvidencePackage], summary="Query cases across all 15 enforcement scenarios")
+async def get_all_violations(
+    violation_type: Optional[str] = Query(None, description="Filter by violation type (e.g. RED_LIGHT_VIOLATION)"),
+    operational_category: Optional[str] = Query(None, description="Filter by operational category (PREVENTION, TRAFFIC_MANAGEMENT, ENFORCEMENT)"),
+    status: Optional[str] = Query(None, description="Filter by review status"),
+    query: Optional[str] = Query(None, description="Search vehicle plate or location")
+):
+    return violation_engine.get_all_cases(
+        violation_type=violation_type,
+        operational_category=operational_category,
+        status=status,
+        query=query
+    )
+
+@router.get("/violations/metrics/operational", summary="Get calm, operational overview metrics for traffic command")
+async def get_operational_metrics():
+    return violation_engine.get_operational_metrics()
+
+@router.get("/violations/infrastructure/recommendations", response_model=List[InfrastructureRecommendation], summary="Get data-driven infrastructure & signal retiming recommendations")
+async def get_infrastructure_recommendations():
+    return violation_engine.get_recommendations()
+
+@router.get("/violations/{evidence_id}", response_model=ViolationEvidencePackage, summary="Get single violation case dossier with frame sequence and signal evidence")
+async def get_violation_case(evidence_id: str):
+    case = violation_engine.get_case_by_id(evidence_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Violation case not found")
+    return case
+
+class OfficerDecisionRequest(BaseModel):
+    action: OfficerDecisionAction
+    officer_id: Optional[str] = "OFF-TG-4402"
+    officer_name: Optional[str] = "Insp. K. Sridhar (Traffic West)"
+    notes: Optional[str] = None
+
+@router.post("/violations/{evidence_id}/decision", response_model=ViolationEvidencePackage, summary="Process official officer determination (Verify, Request Evidence, Reject, Escalate, Approve)")
+async def submit_officer_decision(evidence_id: str, req: OfficerDecisionRequest):
+    case = violation_engine.process_officer_decision(
+        evidence_id=evidence_id,
+        action=req.action,
+        officer_id=req.officer_id or "OFF-TG-4402",
+        officer_name=req.officer_name or "Insp. K. Sridhar (Traffic West)",
+        notes=req.notes
+    )
+    if not case:
+        raise HTTPException(status_code=404, detail="Violation case not found")
+    return case
+
+# ----------------- THARUN DEMONSTRATION JOURNEY -----------------
+@router.get("/demo/tharun-journey", response_model=List[DemoStoryScene], summary="Get all 8 scenes of the Tharun demonstration journey")
+async def get_tharun_journey_scenes():
+    return tharun_journey_service.get_all_scenes()
+
+@router.get("/demo/tharun-journey/current", response_model=DemoStoryScene, summary="Get active scene in Tharun's demonstration journey")
+async def get_current_tharun_scene():
+    return tharun_journey_service.get_current_scene()
+
+@router.post("/demo/tharun-journey/scene/{scene_id}", response_model=DemoStoryScene, summary="Jump to specific scene in Tharun's journey (1 to 8)")
+async def set_tharun_scene(scene_id: int):
+    return tharun_journey_service.set_current_scene(scene_id)
+
+@router.post("/demo/tharun-journey/next", response_model=DemoStoryScene, summary="Advance to next scene in Tharun's journey")
+async def next_tharun_scene():
+    return tharun_journey_service.next_scene()
+
+@router.post("/demo/tharun-journey/prev", response_model=DemoStoryScene, summary="Return to previous scene in Tharun's journey")
+async def prev_tharun_scene():
+    return tharun_journey_service.prev_scene()
+
+@router.post("/demo/tharun-journey/reset", response_model=DemoStoryScene, summary="Reset Tharun's demonstration journey to Scene 1")
+async def reset_tharun_scene():
+    return tharun_journey_service.reset()
+
 

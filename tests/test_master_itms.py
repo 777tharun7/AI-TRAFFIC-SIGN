@@ -150,3 +150,58 @@ def test_public_transit_service():
     assert bus.is_ev is True
     assert 0 <= bus.battery_soc_pct <= 100
     assert -10 <= bus.schedule_delay_minutes <= 30
+
+def test_15_violation_scenarios_and_red_light_flagship():
+    from backend.services.violation_engine import violation_engine
+    from backend.models.schemas import OfficerDecisionAction, LegalClearanceStatus
+
+    cases = violation_engine.get_all_cases()
+    assert len(cases) >= 15  # Covers all 15 scenarios
+
+    # Check Flagship Red Light case for Tharun
+    tharun_case = violation_engine.get_case_by_id("EVD-2026-HYD-0001")
+    assert tharun_case is not None
+    assert tharun_case.vehicle_reg_num == "TS 09 EV 4412"
+    assert tharun_case.signal_evidence is not None
+    assert tharun_case.signal_evidence.seconds_into_red == 1.8
+    assert tharun_case.clearance_status == LegalClearanceStatus.CLEAR_VIOLATION
+    assert tharun_case.frame_sequence is not None
+    assert tharun_case.legal_rule.section_code == "Section 184 / Section 119"
+
+    # Check Legal Clearance case (Entered on Green/Yellow, cleared on Red -> Dismissed)
+    clearance_case = violation_engine.get_case_by_id("EVD-2026-HYD-0002")
+    assert clearance_case is not None
+    assert clearance_case.clearance_status == LegalClearanceStatus.LEGAL_CLEARANCE_GREEN_ENTRY
+    assert clearance_case.status == EvidenceStatus.OFFICER_DISMISSED
+
+    # Test Officer Decision processing
+    updated = violation_engine.process_officer_decision(
+        evidence_id="EVD-2026-HYD-0001",
+        action=OfficerDecisionAction.VERIFY_EVIDENCE,
+        notes="All 3 frames verified against signal controller transition timestamps."
+    )
+    assert updated.status == EvidenceStatus.EVIDENCE_VERIFIED
+    assert updated.officer_action == OfficerDecisionAction.VERIFY_EVIDENCE
+
+def test_tharun_demonstration_journey():
+    from backend.services.tharun_journey_service import tharun_journey_service
+
+    scenes = tharun_journey_service.get_all_scenes()
+    assert len(scenes) == 8
+
+    # Start at Scene 1
+    tharun_journey_service.reset()
+    s1 = tharun_journey_service.get_current_scene()
+    assert s1.scene_id == 1
+    assert "TS 09 EV 4412" in s1.vehicle_plate
+
+    # Advance to Scene 3 (Red Light Violation Simulation)
+    s3 = tharun_journey_service.set_current_scene(3)
+    assert s3.scene_id == 3
+    assert "Red-Light Violation" in s3.title
+
+    # Advance to Scene 8 (Infrastructure Recommendation)
+    s8 = tharun_journey_service.set_current_scene(8)
+    assert s8.scene_id == 8
+    assert "Road Safety & Infrastructure Improvement" in s8.title
+
