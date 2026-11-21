@@ -37,6 +37,13 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
             <span>HYDERABAD CONNECTED</span>
           </div>
 
+          {/* Vehicle Badge */}
+          <div className="hidden sm:flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full border border-white/15">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span className="font-bold text-white font-mono">TS 09 EV 4412</span>
+            <span className="text-slate-400">• Tata Nexon EV Max (Devanboina Tharun)</span>
+          </div>
+
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1 text-cyan-400 font-bold">
               <Compass className="w-3.5 h-3.5" />

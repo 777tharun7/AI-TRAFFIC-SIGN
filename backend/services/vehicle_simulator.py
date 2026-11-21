@@ -88,10 +88,10 @@ HYDERABAD_ROUTES = {
 }
 
 class VehicleSimulator:
-    def __init__(self, vehicle_id: str = "VEH-HYD-001", vehicle_type: VehicleType = VehicleType.CAR):
+    def __init__(self, vehicle_id: str = "TS 09 EV 4412", vehicle_type: VehicleType = VehicleType.CAR):
         self.vehicle_id = vehicle_id
         self.vehicle_type = vehicle_type
-        self.route_id = "route_hussain_sagar_necklace"
+        self.route_id = "route_hitec_gachibowli"
         self.route = HYDERABAD_ROUTES[self.route_id]
         
         # Motion & Position state
