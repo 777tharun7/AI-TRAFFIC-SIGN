@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { VehicleState, VirtualRIU, TrafficSignal } from '../types';
 import { RealNavigationMap } from './RealNavigationMap';
 import { EventDetailsCard } from './EventDetailsCard';
+import { LivePerceptionPipelineDeck } from './LivePerceptionPipelineDeck';
 import { VehicleBehaviorFlow } from './VehicleBehaviorFlow';
 import { VehicleStateMachineFlow } from './VehicleStateMachineFlow';
 import { LiveEventTimeline } from './LiveEventTimeline';
-import { Navigation, Compass, AlertTriangle, CloudSun, MapPin } from 'lucide-react';
+import { 
+  Navigation, Compass, AlertTriangle, ShieldCheck, Zap, 
+  MapPin, Activity, Radio, Cpu, Smartphone, Car, ChevronRight, Gauge
+} from 'lucide-react';
 
 interface Props {
   vehicle: VehicleState | null;
@@ -20,77 +24,95 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
   signals,
   onControl
 }) => {
-  const currentSpeed = vehicle?.speed_kmh ?? 45;
+  const [deviceDisplayMode, setDeviceDisplayMode] = useState<'cockpit' | 'bike'>('cockpit');
+
+  const currentSpeed = vehicle?.speed_kmh ?? 42;
   const behaviorState = vehicle?.behavior_state ?? 'MOVING';
   const effectiveSignal = vehicle?.active_signal || (signals.length > 0 ? signals[0] : null);
   const signalState = effectiveSignal?.state ?? 'RED';
-  const timeRemaining = effectiveSignal?.remaining_time ?? 30;
+  const timeRemaining = effectiveSignal?.remaining_time ?? 15;
   const distanceToEvent = Math.round(vehicle?.distance_to_stop_line_m ?? vehicle?.distance_to_event_m ?? 80);
-  const speedLimit = vehicle?.target_speed_kmh ?? 40;
+  const speedLimit = vehicle?.target_speed_kmh ?? 50;
   
   // Dynamic color coding for automotive glanceability
-  const speedColor = currentSpeed > speedLimit + 5 
-    ? '#ef4444' 
-    : (behaviorState === 'DECELERATING' || behaviorState === 'STOPPING' || behaviorState === 'WAITING_FOR_GREEN' ? '#f59e0b' : '#10b981');
+  const isOverspeed = currentSpeed > speedLimit + 5;
+  const isStopping = behaviorState === 'DECELERATING' || behaviorState === 'STOPPING' || behaviorState === 'WAITING_FOR_GREEN' || behaviorState === 'STOPPED';
+  const speedColor = isOverspeed ? '#ef4444' : isStopping ? '#f59e0b' : '#10b981';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       
-      {/* Top Grid: Real Geospatial 2D/3D Navigation Map (Left 60%) + Cockpit Experiences (Right 40%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* ================= ZONE 1: INTELLIGENCE CORRIDOR HERO (MAP + INSPECTOR) ================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
-        {/* Left 7 Columns: Real Geospatial Navigation Map Engine */}
-        <div className="lg:col-span-7">
-          <RealNavigationMap
-            vehicle={vehicle}
-            rius={rius}
-            signals={signals}
-            onControl={onControl}
-          />
+        {/* Left 7 Cols: Real Navigation Map Engine */}
+        <div className="lg:col-span-7 flex flex-col">
+          <div className="flex-1 flex flex-col">
+            <RealNavigationMap
+              vehicle={vehicle}
+              rius={rius}
+              signals={signals}
+              onControl={onControl}
+              showPipelineDeck={false}
+            />
+          </div>
         </div>
 
-        {/* Right 5 Columns: Vehicle Cockpit & Mounted Bike Display & Event Details */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Right 5 Cols: Active Event Details & Connected In-Vehicle Advisory */}
+        <div className="lg:col-span-5 flex flex-col justify-between gap-5">
           
-          {/* 1. Car Cockpit HMI (In-Vehicle Interface) */}
-          <div className="bg-[#0b101b] rounded-2xl border border-slate-800 shadow-xl p-4 text-white overflow-hidden relative">
-            {/* Top Bar */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800/80 pb-2 mb-3">
-              <span className="font-bold text-slate-200">Car Cockpit HMI (In-Vehicle Interface)</span>
-              <div className="flex items-center gap-2 font-mono">
-                <span className="text-emerald-400">📶 5G</span>
-                <span>10:24 AM</span>
+          {/* Card 1: Active Road Event & Signal Inspector */}
+          <EventDetailsCard
+            vehicle={vehicle}
+            signal={effectiveSignal}
+          />
+
+          {/* Card 2: Connected In-Vehicle Advisory Cluster (Spacious, Zero-Squish) */}
+          <div className="bg-[#0A111F] rounded-2xl border border-slate-800 shadow-xl p-5 text-white flex-1 flex flex-col justify-between relative overflow-hidden">
+            
+            {/* Header & Device Mode Toggle */}
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Activity className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white leading-tight">In-Cabin Driver Telemetry</h4>
+                  <span className="text-[10px] text-slate-400 font-mono">TS 09 EV 4412 • GVID Link</span>
+                </div>
+              </div>
+
+              {/* Toggle Automotive vs Mobile Mode */}
+              <div className="flex items-center p-0.5 rounded-lg bg-slate-900 border border-slate-700/80 text-[10px] font-mono">
+                <button
+                  onClick={() => setDeviceDisplayMode('cockpit')}
+                  className={`px-2 py-1 rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                    deviceDisplayMode === 'cockpit' ? 'bg-[#00875A] text-white font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Car className="w-3 h-3" />
+                  <span>Car HMI</span>
+                </button>
+                <button
+                  onClick={() => setDeviceDisplayMode('bike')}
+                  className={`px-2 py-1 rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                    deviceDisplayMode === 'bike' ? 'bg-[#00875A] text-white font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Smartphone className="w-3 h-3" />
+                  <span>Mobile 6.7"</span>
+                </button>
               </div>
             </div>
 
-            {/* In-Vehicle Cluster Visual */}
-            <div className="grid grid-cols-12 gap-3 items-center">
+            {/* Core Instrument Cluster */}
+            <div className="py-4 grid grid-cols-12 gap-4 items-center">
               
-              {/* Lane & Corridor Guidance */}
-              <div className="col-span-4 bg-slate-900/90 rounded-xl p-2.5 border border-slate-800 text-center flex flex-col justify-between h-36">
-                <div>
-                  <span className="text-[9px] font-mono uppercase text-slate-400 block truncate">
-                    {vehicle?.current_road || 'HITEC City Road'}
-                  </span>
-                  <span className="text-xs font-bold text-blue-400 font-mono">
-                    {Math.round(vehicle?.heading || 0)}° Heading
-                  </span>
-                </div>
-                {/* 3D Road Lane SVG */}
-                <div className="relative h-16 w-full flex justify-center items-center overflow-hidden">
-                  <svg className="w-full h-full" viewBox="0 0 100 80">
-                    <polygon points="10,80 35,20 65,20 90,80" fill="#1e293b" />
-                    <line x1="50" y1="20" x2="50" y2="80" stroke="#3b82f6" strokeWidth="4" strokeDasharray="6 6" />
-                    <polygon points="50,45 42,60 58,60" fill="#60a5fa" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Central Dynamic Speedometer */}
-              <div className="col-span-4 flex flex-col items-center justify-center relative">
+              {/* Left 5 Cols: Speedometer Gauge */}
+              <div className="col-span-5 flex flex-col items-center justify-center">
                 <div className="relative w-28 h-28 flex items-center justify-center">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="40" stroke="#1e293b" strokeWidth="6" fill="transparent" />
+                  <svg className="w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="6" fill="transparent" />
                     <circle 
                       cx="50" 
                       cy="50" 
@@ -103,132 +125,67 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
                       strokeLinecap="round"
                     />
                   </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-black font-mono leading-none tracking-tight">{currentSpeed.toFixed(0)}</span>
-                    <span className="text-[9px] font-mono text-slate-400">km/h</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <span className="text-[9px] font-mono text-slate-400">Advisory:</span>
-                  <div className="w-5 h-5 rounded-full border border-emerald-500 text-emerald-400 flex items-center justify-center text-[8px] font-black font-mono">
-                    {Math.round(speedLimit)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Active Signal Stop Alert Widget */}
-              <div className="col-span-4 space-y-2">
-                <div className="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800 flex items-center gap-2">
-                  <div className="w-3.5 h-8 rounded bg-black flex flex-col items-center justify-between p-0.5 shrink-0">
-                    <span className={`w-1.5 h-1.5 rounded-full ${signalState === 'RED' ? 'bg-red-500 animate-pulse shadow-sm shadow-red-500' : 'bg-red-950'}`} />
-                    <span className={`w-1.5 h-1.5 rounded-full ${signalState === 'YELLOW' ? 'bg-amber-500 animate-pulse' : 'bg-amber-950'}`} />
-                    <span className={`w-1.5 h-1.5 rounded-full ${signalState === 'GREEN' ? 'bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500' : 'bg-emerald-950'}`} />
-                  </div>
-                  <div>
-                    <span className={`text-[10px] font-bold block leading-none ${signalState === 'RED' ? 'text-red-400' : signalState === 'GREEN' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {signalState} Signal
-                    </span>
-                    <span className="text-[11px] font-mono font-black text-white">{distanceToEvent} m</span>
-                    <span className="text-[9px] font-mono text-slate-400 block">{timeRemaining}s rem</span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-3xl font-black font-mono leading-none tracking-tight text-white">{currentSpeed.toFixed(0)}</span>
+                    <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider mt-0.5">KM / H</span>
                   </div>
                 </div>
 
-                <div className={`py-1 px-2 rounded-lg text-white text-[9px] font-bold text-center tracking-wide ${
-                  signalState === 'RED' ? 'bg-red-600/90' : signalState === 'GREEN' ? 'bg-emerald-600/90' : 'bg-amber-600/90'
-                }`}>
-                  {behaviorState.replace(/_/g, ' ')}
-                </div>
-
-                <div className="bg-slate-900/60 rounded-lg p-1.5 border border-slate-800/80 flex items-center gap-1.5 text-[9px]">
-                  <span className="text-amber-400">⚠️</span>
-                  <div className="truncate">
-                    <span className="text-slate-400 block text-[8px]">Event</span>
-                    <span className="font-bold text-slate-200 truncate block">
-                      {vehicle?.active_events?.[0]?.name || 'Speed Breaker 250m'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Bottom Cockpit Status Footer */}
-            <div className="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-800/80 pt-2 mt-3 font-mono">
-              <div className="flex items-center gap-2">
-                <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">D READY</span>
-                <span>HITEC City Main Road | Hyderabad</span>
-              </div>
-              <div className="flex items-center gap-1 text-slate-300">
-                <CloudSun className="w-3.5 h-3.5 text-amber-400" />
-                <span>24°C</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Bike 6.7-inch Display + Event Details Split */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
-            
-            {/* Left: Mobile-Mounted Bike 6.7" Display Frame */}
-            <div className="bg-slate-900 p-3 rounded-3xl border-4 border-slate-800 shadow-xl flex flex-col justify-between text-white relative">
-              <div className="text-center mb-2">
-                <span className="text-[10px] font-bold text-slate-300">Bike 6.7-inch Display (Mobile Mounted)</span>
-              </div>
-
-              {/* Smartphone Screen Simulator */}
-              <div className="bg-slate-950 rounded-2xl p-3 border border-slate-800 flex-1 flex flex-col justify-between">
-                
-                {/* Mobile Top Bar */}
-                <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono pb-1 border-b border-slate-800">
-                  <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                    <span>📍</span> Hyderabad
+                {/* Speed Limit & Status Pill */}
+                <div className="flex items-center gap-1.5 mt-2">
+                  <span className="text-[9px] font-mono text-slate-400">Limit:</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-[10px] font-bold">
+                    {Math.round(speedLimit)} km/h
                   </span>
-                  <span>10:24 AM</span>
                 </div>
+              </div>
 
-                {/* Main Large Speed Readout */}
-                <div className="text-center py-2">
-                  <div className="text-3xl font-black font-mono tracking-tight text-white">{currentSpeed.toFixed(0)}</div>
-                  <div className="text-[9px] font-mono text-slate-400">km/h</div>
-                </div>
-
-                {/* Primary Alert Card */}
-                <div className="bg-slate-900/90 rounded-xl p-2 border border-red-500/40 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-7 rounded bg-black flex flex-col items-center justify-between p-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500/20" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/20" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-bold text-red-400 block leading-none">Red Signal</span>
-                        <span className="text-xs font-mono font-black text-white">{distanceToEvent} m</span>
-                        <span className="text-[8px] font-mono text-slate-400 block">{timeRemaining} sec</span>
-                      </div>
-                    </div>
+              {/* Right 7 Cols: Tactical Guidance & Warning Envelope */}
+              <div className="col-span-7 space-y-2.5">
+                
+                {/* Active Behavior Status */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-[9px] font-mono text-slate-400 block uppercase">Vehicle State</span>
+                    <span className="text-xs font-bold text-white font-mono">{behaviorState.replace(/_/g, ' ')}</span>
                   </div>
-                  <div className="py-0.5 px-1 bg-red-600 rounded text-center text-[9px] font-bold">
-                    Prepare to Stop
+                  <div className="text-right">
+                    <span className="text-[9px] font-mono text-slate-400 block uppercase">Stop Line</span>
+                    <span className="text-xs font-bold text-amber-400 font-mono">{distanceToEvent} meters</span>
                   </div>
                 </div>
 
-                {/* Upcoming Advisory */}
-                <div className="mt-2 bg-slate-900/60 rounded-lg p-1.5 border border-slate-800 flex items-center gap-2 text-[9px] min-w-0">
-                  <span className="text-amber-400 shrink-0">⚠️</span>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-slate-400 text-[8px] block">Next</span>
-                    <span className="font-bold text-slate-200 truncate block">Speed Breaker 250m</span>
+                {/* Road Corridor Guidance */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center gap-2.5">
+                  <Navigation className="w-4 h-4 text-blue-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[9px] font-mono text-slate-400 block uppercase">Active Segment</span>
+                    <span className="text-xs font-bold text-slate-200 truncate block font-sans">
+                      {vehicle?.current_road || 'HITEC City Main Road'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* GLOSA Green-Wave Advisory Band */}
+                <div className="p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <div className="text-[10px] leading-tight">
+                    <span className="font-bold text-emerald-300">Green-Wave Band: </span>
+                    <span className="text-white font-mono font-medium">38–44 km/h for zero stop</span>
                   </div>
                 </div>
 
               </div>
             </div>
 
-            {/* Right: Detailed Inspection Event Details Card */}
-            <EventDetailsCard
-              vehicle={vehicle}
-              signal={effectiveSignal}
-            />
+            {/* Footer Notice */}
+            <div className="border-t border-slate-800/80 pt-2.5 flex items-center justify-between text-[10px] font-mono text-slate-400">
+              <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>CAN-BUS 500k Synchronized</span>
+              </div>
+              <span className="text-slate-500">Ahead: Speed Breaker (250m)</span>
+            </div>
 
           </div>
 
@@ -236,16 +193,58 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
 
       </div>
 
-      {/* Bottom Row: 3 Linked Vehicle Automation Modules */}
+      {/* ================= ZONE 2: 5-STAGE PERCEPTION & SENSOR FUSION PIPELINE (FULL 12 COLS) ================= */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
+        
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-900 tracking-wider uppercase font-mono">
+                EDGE AI INFERENCE & SENSOR FUSION
+              </span>
+              <span className="text-xs text-slate-400 font-mono">PIPELINE TRACE</span>
+            </div>
+            <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-indigo-600" />
+              5-Stage Edge AI Perception & Actuation Pipeline
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Real-time sequence: 720p 30fps camera feed → YOLO/EfficientNet recognition → Dual-band RTK GNSS context → 10ms rule arbitration → CAN-bus actuation.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 font-mono text-[11px] font-bold border border-slate-200">
+              CAMERA 30 FPS
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-emerald-50 text-emerald-900 font-mono text-[11px] font-bold border border-emerald-300">
+              AI 96.3%
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-900 font-mono text-[11px] font-bold border border-blue-300">
+              V2X SPaT LIVE
+            </span>
+          </div>
+        </div>
+
+        {/* Full-Width 5-Card Grid */}
+        <LivePerceptionPipelineDeck
+          vehicle={vehicle}
+          speedKmh={currentSpeed}
+          timeRemaining={timeRemaining}
+        />
+      </div>
+
+      {/* ================= ZONE 3: VEHICLE DECISION ENGINE & AUTOMATION (BALANCED ROW) ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
-        {/* Module 1: Vehicle Behavior Flow Storyboard (6 Cols) */}
-        <div className="lg:col-span-6 flex flex-col">
+        {/* Module 1: Vehicle Behavior Flow Storyboard (5 Cols) */}
+        <div className="lg:col-span-5 flex flex-col">
           <VehicleBehaviorFlow vehicle={vehicle} />
         </div>
 
-        {/* Module 2: Vehicle State Machine (3 Cols) */}
-        <div className="lg:col-span-3 flex flex-col">
+        {/* Module 2: Vehicle State Machine (4 Cols) */}
+        <div className="lg:col-span-4 flex flex-col">
           <VehicleStateMachineFlow vehicle={vehicle} />
         </div>
 
