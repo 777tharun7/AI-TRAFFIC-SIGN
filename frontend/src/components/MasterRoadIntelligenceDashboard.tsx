@@ -235,21 +235,19 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
         />
       </div>
 
-      {/* ================= ZONE 3: VEHICLE DECISION ENGINE & AUTOMATION (BALANCED ROW) ================= */}
+      {/* ================= ZONE 3: VEHICLE BEHAVIOR KINEMATICS LIFECYCLE (FULL 12 COLS) ================= */}
+      <VehicleBehaviorFlow vehicle={vehicle} />
+
+      {/* ================= ZONE 4: FINITE STATE MACHINE & EVENT TIMELINE (6 COLS : 6 COLS) ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
-        {/* Module 1: Vehicle Behavior Flow Storyboard (5 Cols) */}
-        <div className="lg:col-span-5 flex flex-col">
-          <VehicleBehaviorFlow vehicle={vehicle} />
-        </div>
-
-        {/* Module 2: Vehicle State Machine (4 Cols) */}
-        <div className="lg:col-span-4 flex flex-col">
+        {/* Module 1: Vehicle State Machine (6 Cols) */}
+        <div className="lg:col-span-6 flex flex-col">
           <VehicleStateMachineFlow vehicle={vehicle} />
         </div>
 
-        {/* Module 3: Live Event Timeline (3 Cols) */}
-        <div className="lg:col-span-3 flex flex-col">
+        {/* Module 2: Live Event Timeline (6 Cols) */}
+        <div className="lg:col-span-6 flex flex-col">
           <LiveEventTimeline vehicle={vehicle} />
         </div>
 
