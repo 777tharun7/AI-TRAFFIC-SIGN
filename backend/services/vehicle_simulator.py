@@ -17,6 +17,7 @@ from .riu_service import riu_service
 from .signal_simulator import signal_simulator
 from .road_event_engine import road_event_engine
 from .vehicle_behavior_engine import vehicle_behavior_engine
+from .traffic_dept_service import traffic_dept_service
 
 HYDERABAD_ROUTES = {
     "route_hussain_sagar_necklace": {
@@ -127,6 +128,15 @@ class VehicleSimulator:
         self.advisory_message = "RoadSense AI Active: Cruising Cyber Towers Corridor"
         self.conflict_detected = False
         self.conflict_details = None
+        
+        # EV Battery & Smart Charging Telemetry
+        self.is_ev = True
+        self.battery_soc_pct = 74.5
+        self.battery_soh_pct = 98.4
+        self.estimated_range_km = 298.0
+        self.battery_temp_c = 31.2
+        self.energy_consumption_kwh = 15.2
+        self.low_battery_alert = False
 
     def set_route(self, route_id: str):
         if route_id in HYDERABAD_ROUTES:
@@ -159,6 +169,9 @@ class VehicleSimulator:
         self.behavior_state = VehicleBehaviorState.MOVING
         self.active_rule = "CRUISE_CORRIDOR"
         self.decision_reason = "Simulation initialized"
+        self.battery_soc_pct = 74.5
+        self.estimated_range_km = 298.0
+        self.low_battery_alert = False
         self.is_running = True
 
     def speed_up(self, delta: float = 5.0):
@@ -276,6 +289,15 @@ class VehicleSimulator:
         self.recommended_speed_kmh = self.target_speed_kmh
         self.advisory_message = self.decision_reason
 
+        # 8. Dynamic EV Battery Physics & Charging Proximity
+        if self.is_running and self.speed_kmh > 0:
+            dist_km = (self.speed_kmh * delta_seconds) / 3600.0
+            self.battery_soc_pct = max(8.0, self.battery_soc_pct - (dist_km * 0.08))
+            self.estimated_range_km = round(self.battery_soc_pct * 4.0, 1)
+            self.low_battery_alert = self.battery_soc_pct < 20.0
+
+        nearby_ev_stations = traffic_dept_service.get_ev_stations(self.lat, self.lon)[:4]
+
         overall_progress = ((self.current_segment_idx + self.segment_fraction) / max(1, num_segs)) * 100.0
 
         return VehicleState(
@@ -292,6 +314,14 @@ class VehicleSimulator:
             route_id=self.route_id,
             progress_pct=round(overall_progress, 1),
             is_running=self.is_running,
+            is_ev=self.is_ev,
+            battery_soc_pct=round(self.battery_soc_pct, 1),
+            battery_soh_pct=round(self.battery_soh_pct, 1),
+            estimated_range_km=round(self.estimated_range_km, 1),
+            battery_temp_c=round(self.battery_temp_c, 1),
+            energy_consumption_kwh=round(self.energy_consumption_kwh, 1),
+            low_battery_alert=self.low_battery_alert,
+            nearby_charging_stations=nearby_ev_stations,
             behavior_state=self.behavior_state,
             active_rule=self.active_rule,
             decision_reason=self.decision_reason,

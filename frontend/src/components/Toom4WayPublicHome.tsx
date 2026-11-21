@@ -4,7 +4,7 @@ import {
   Zap, Layers, BookOpen, CheckCircle2, ChevronRight, 
   Activity, Sparkles, Navigation, Gauge, Eye, Sliders,
   HelpCircle, ExternalLink, AlertTriangle, Crosshair, Check,
-  Download, Maximize2, FileText, Compass, Award
+  Download, Maximize2, FileText, Compass, Award, Building2
 } from 'lucide-react';
 import { RealNavigationMap } from './RealNavigationMap';
 import { RoadSenseLogo } from './RoadSenseLogo';
@@ -73,6 +73,14 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
             >
               <Gauge className="w-4 h-4 text-slate-500" />
               <span>Automotive Cockpit HUD</span>
+            </button>
+
+            <button
+              onClick={() => onNavigateTab('traffic_dept')}
+              className="flex items-center gap-2 px-5 py-3.5 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100/80 text-emerald-900 font-bold text-sm rounded-xl shadow-2xs transition-all cursor-pointer"
+            >
+              <Building2 className="w-4 h-4 text-emerald-700" />
+              <span>Traffic Ops & EV Portal</span>
             </button>
 
             <button

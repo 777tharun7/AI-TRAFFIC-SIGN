@@ -5,7 +5,7 @@ import {
   Bell, ChevronDown, Check, Maximize2, Plus, Minus, 
   Compass, ArrowRight, AlertTriangle, Activity, Zap, RefreshCw,
   Camera, Sliders, Car, Crosshair, Sparkles, CheckCircle2,
-  LogIn, User, Shield, Menu, X, LogOut
+  LogIn, User, Shield, Menu, X, LogOut, Building2
 } from 'lucide-react';
 import { VehicleState, VirtualRIU, TrafficSignal } from '../types';
 import { RoadSenseLogo } from './RoadSenseLogo';
@@ -21,6 +21,7 @@ import { ProjectDeckAndResearchView } from './ProjectDeckAndResearchView';
 import { AIModelCenter } from './AIModelCenter';
 import { SystemStateInventoryView } from './states/SystemStateInventoryView';
 import { UIUXLayoutStudio } from './UIUXLayoutStudio';
+import { TrafficDeptPortal } from './TrafficDeptPortal';
 import { LoginView, RegisterView, VerifyEmailView, ForgotPasswordView } from './auth/AuthPages';
 import { CookieSettingsView, PrivacyPolicyView, TermsOfServiceView } from './legal/LegalPages';
 
@@ -106,6 +107,23 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
             >
               <Car className="w-4 h-4 text-slate-400" />
               <span>Vehicle Experience</span>
+            </button>
+
+            <button
+              onClick={() => handleNav('traffic_dept')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer ${
+                currentView === 'traffic_dept'
+                  ? 'bg-[#E6F8F3] text-[#00875A] font-bold shadow-2xs'
+                  : 'text-[#475569] hover:text-[#0F172A] hover:bg-slate-50 font-medium'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Building2 className={`w-4 h-4 ${currentView === 'traffic_dept' ? 'text-[#00875A]' : 'text-slate-400'}`} />
+                <span>Traffic Ops & EV Portal</span>
+              </div>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-bold">
+                EVP
+              </span>
             </button>
           </nav>
 
@@ -283,6 +301,14 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
               <span>Live Connected</span>
               <span className="text-[10px] text-slate-500 font-normal pl-1 border-l border-emerald-300">All Systems Online</span>
             </div>
+
+            <button
+              onClick={() => handleNav('traffic_dept')}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#00875A] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#00744E] cursor-pointer transition-all"
+            >
+              <Building2 className="w-3.5 h-3.5 text-white" />
+              <span>Traffic Ops Portal</span>
+            </button>
 
             <button
               onClick={() => handleNav('ui_ux_debugger')}
@@ -479,6 +505,16 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           {currentView === 'system_states' && (
             <div className="p-6 max-w-7xl mx-auto">
               <SystemStateInventoryView />
+            </div>
+          )}
+
+          {currentView === 'traffic_dept' && (
+            <div className="p-6 max-w-7xl mx-auto">
+              <TrafficDeptPortal
+                vehicle={vehicle}
+                onControl={onControl}
+                onNavigateTab={handleNav}
+              />
             </div>
           )}
 

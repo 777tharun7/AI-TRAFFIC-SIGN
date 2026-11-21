@@ -634,3 +634,49 @@ def test_detector_classify_roi():
     assert "latency_ms" in res
     assert "vehicle_action" in res
     assert res["primary"]["class_id"] in detector.classes
+
+# =========================================================================
+# EV SMART CHARGING & TRAFFIC OPERATIONS PORTAL TESTS
+# =========================================================================
+
+def test_ev_charging_discovery():
+    """Verify EV fast charging station proximity calculation and port availability."""
+    from backend.services.traffic_dept_service import traffic_dept_service
+    stations = traffic_dept_service.get_ev_stations(lat=17.4435, lon=78.3772)
+    assert len(stations) >= 4
+    # Closest station has distance populated and sorted
+    assert stations[0].distance_m is not None
+    assert stations[0].available_ports > 0
+    assert any("CCS2" in t for t in stations[0].charger_types)
+
+def test_traffic_dept_corridors_and_incidents():
+    """Verify citywide corridor Level of Service (LoS) and ANPR violation feed."""
+    from backend.services.traffic_dept_service import traffic_dept_service
+    corridors = traffic_dept_service.get_corridors_overview()
+    assert len(corridors) >= 4
+    assert any(c.level_of_service in ["LOS_A", "LOS_B", "LOS_C"] for c in corridors)
+    
+    incidents = traffic_dept_service.get_incidents()
+    assert len(incidents) >= 4
+    assert any(inc.incident_type == "OVERSPEEDING" for inc in incidents)
+    assert any(inc.incident_type == "RED_LIGHT_VIOLATION" for inc in incidents)
+
+def test_emergency_preemption_toggle():
+    """Verify Emergency Vehicle Priority (EVP) Green-Wave preemption."""
+    from backend.services.traffic_dept_service import traffic_dept_service
+    res = traffic_dept_service.trigger_emergency_preemption("route_hitec_gachibowli", enable=True)
+    assert res["status"] == "SUCCESS"
+    assert res["emergency_preemption_active"] is True
+    
+    # Restore normal adaptive control
+    res_restore = traffic_dept_service.trigger_emergency_preemption("route_hitec_gachibowli", enable=False)
+    assert res_restore["emergency_preemption_active"] is False
+
+def test_vehicle_ev_telemetry():
+    """Verify vehicle simulator outputs rich EV battery and nearby charging telemetry."""
+    from backend.services.vehicle_simulator import vehicle_simulator
+    state = vehicle_simulator.step(0.5)
+    assert state.is_ev is True
+    assert state.battery_soc_pct > 0.0
+    assert state.estimated_range_km > 0.0
+    assert len(state.nearby_charging_stations) > 0

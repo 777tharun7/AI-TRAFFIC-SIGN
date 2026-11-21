@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Navigation, Compass, Radio, AlertTriangle, 
   ShieldCheck, Zap, ArrowUp, ArrowDown, RotateCcw, 
-  Play, Pause, Gauge 
+  Play, Pause, Gauge, BatteryCharging, MapPin
 } from 'lucide-react';
 import { VehicleState } from '../types';
 
@@ -203,6 +203,48 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* EV Battery & Smart Charging Hubs HUD */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-4 border-t border-white/10">
+          <div className="md:col-span-4 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                <BatteryCharging className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono text-slate-400 block uppercase">EV Battery Status</span>
+                <span className="text-base font-bold text-white font-mono">{vehicle.battery_soc_pct ?? 74.5}% SoC</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] font-mono text-emerald-400 block font-bold">EST. RANGE</span>
+              <span className="text-sm font-mono text-white font-bold">{vehicle.estimated_range_km ?? 298} km</span>
+            </div>
+          </div>
+
+          <div className="md:col-span-8 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                Nearby Corridor Fast Charging Stations
+              </span>
+              <span className="text-[10px] text-cyan-400 font-mono font-bold">LIVE AVAILABILITY</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {(vehicle.nearby_charging_stations || []).slice(0, 2).map((st) => (
+                <div key={st.station_id} className="p-2.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between text-xs">
+                  <div className="truncate mr-2">
+                    <div className="font-bold text-white truncate text-xs">{st.name}</div>
+                    <div className="text-[10px] text-slate-400 font-mono">{st.power_kw} kW • ₹{st.price_per_kwh}/kWh</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-[10px] font-mono font-bold text-emerald-400 block">{st.available_ports} free</span>
+                    {st.distance_m && <span className="text-[9px] text-slate-400 font-mono">{st.distance_m}m</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

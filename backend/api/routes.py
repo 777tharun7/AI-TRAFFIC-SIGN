@@ -14,7 +14,8 @@ from pydantic import BaseModel
 
 from ..models.schemas import (
     RoadEvent, VirtualRIU, VirtualRIUCreate, TrafficSignal, VehicleState,
-    DetectionResponse, DetectionItem, FusedEvent, PriorityLevel, VehicleType
+    DetectionResponse, DetectionItem, FusedEvent, PriorityLevel, VehicleType,
+    EVChargingStation, TrafficIncident, CorridorTrafficStatus
 )
 from backend.services.riu_service import riu_service
 from backend.services.signal_simulator import signal_simulator
@@ -22,6 +23,7 @@ from backend.services.road_event_engine import road_event_engine
 from backend.services.fusion_engine import fusion_engine
 from backend.services.vehicle_simulator import vehicle_simulator, HYDERABAD_ROUTES
 from backend.services.cvdv_engine import cvdv_engine
+from backend.services.traffic_dept_service import traffic_dept_service
 from ml.inference.detector import TrafficSignDetector
 
 router = APIRouter()
@@ -321,3 +323,30 @@ async def start_demo():
     vehicle_simulator.reset()
     vehicle_simulator.play()
     return {"status": "DEMO_STARTED", "message": "Hyderabad Connected Road Intelligence Simulation Activated"}
+
+# ----------------- EV FLEET & SMART CHARGING PORTAL -----------------
+@router.get("/ev/stations", response_model=List[EVChargingStation], summary="List all Hyderabad EV Fast Charging Stations")
+async def get_ev_stations(
+    lat: Optional[float] = Query(None, description="Current latitude"),
+    lon: Optional[float] = Query(None, description="Current longitude")
+):
+    current_lat = lat if lat is not None else vehicle_simulator.lat
+    current_lon = lon if lon is not None else vehicle_simulator.lon
+    return traffic_dept_service.get_ev_stations(current_lat, current_lon)
+
+# ----------------- TRAFFIC DEPARTMENT COMMAND PORTAL -----------------
+@router.get("/traffic-dept/corridors", response_model=List[CorridorTrafficStatus], summary="Citywide corridor Level of Service and congestion index")
+async def get_traffic_corridors():
+    return traffic_dept_service.get_corridors_overview()
+
+@router.get("/traffic-dept/incidents", response_model=List[TrafficIncident], summary="Real-time traffic violations and road incidents feed")
+async def get_traffic_incidents():
+    return traffic_dept_service.get_incidents()
+
+class EmergencyPreemptionRequest(BaseModel):
+    route_id: Optional[str] = "route_hitec_gachibowli"
+    enable: bool = True
+
+@router.post("/traffic-dept/emergency-preemption", summary="Trigger Emergency Vehicle Priority (EVP) Green-Wave Preemption")
+async def trigger_emergency_preemption(req: EmergencyPreemptionRequest):
+    return traffic_dept_service.trigger_emergency_preemption(req.route_id, req.enable)

@@ -121,6 +121,48 @@ class VehicleBehaviorState(str, Enum):
     REROUTING = "REROUTING"
     COMPLETED = "COMPLETED"
 
+# ----------------- EV FLEET & CHARGING SCHEMAS -----------------
+class EVChargingStation(BaseModel):
+    station_id: str
+    name: str
+    operator: str
+    latitude: float
+    longitude: float
+    distance_m: Optional[float] = None
+    total_ports: int = 6
+    available_ports: int = 4
+    charger_types: List[str] = ["CCS2 (150 kW)", "Type 2 (22 kW)"]
+    power_kw: float = 150.0
+    price_per_kwh: float = 18.5
+    wait_time_minutes: int = 0
+    status: str = "AVAILABLE"
+
+# ----------------- TRAFFIC DEPARTMENT COMMAND SCHEMAS -----------------
+class TrafficIncident(BaseModel):
+    incident_id: str
+    timestamp: str
+    incident_type: str
+    severity: str
+    location_name: str
+    latitude: float
+    longitude: float
+    vehicle_id: str
+    vehicle_plate: str
+    status: str
+    speed_kmh: Optional[float] = None
+    fine_amount_inr: Optional[int] = None
+
+class CorridorTrafficStatus(BaseModel):
+    corridor_id: str
+    name: str
+    congestion_level: str
+    level_of_service: str
+    average_speed_kmh: float
+    active_vehicle_count: int
+    incident_count: int
+    aqi_index: int
+    green_wave_active: bool
+
 # ----------------- VEHICLE TELEMETRY SCHEMAS -----------------
 class VehicleState(BaseModel):
     vehicle_id: str = "VEH-HYD-001"
@@ -136,6 +178,16 @@ class VehicleState(BaseModel):
     route_id: str = "route_hitec_gachibowli"
     progress_pct: float = 0.0
     is_running: bool = False
+    
+    # EV Fleet Telemetry
+    is_ev: bool = True
+    battery_soc_pct: float = 74.0
+    battery_soh_pct: float = 98.4
+    estimated_range_km: float = 296.0
+    battery_temp_c: float = 31.5
+    energy_consumption_kwh: float = 15.2
+    low_battery_alert: bool = False
+    nearby_charging_stations: List[EVChargingStation] = []
     
     # Rule-based Behavior State Machine
     behavior_state: VehicleBehaviorState = VehicleBehaviorState.MOVING

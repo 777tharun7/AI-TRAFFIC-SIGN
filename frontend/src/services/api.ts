@@ -1,5 +1,6 @@
 import {
-  VehicleState, VirtualRIU, RoadEvent, TrafficSignal, DetectionResponse, ModelMetrics
+  VehicleState, VirtualRIU, RoadEvent, TrafficSignal, DetectionResponse, ModelMetrics,
+  EVChargingStation, TrafficIncident, CorridorTrafficStatus
 } from '../types';
 
 const isBrowser = typeof window !== 'undefined';
@@ -132,6 +133,34 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_base64: imageBase64, bbox }),
+    });
+    return res.json();
+  },
+
+  // EV Smart Charging & Traffic Department Portal
+  async getEVStations(lat?: number, lon?: number): Promise<EVChargingStation[]> {
+    const params = new URLSearchParams();
+    if (lat !== undefined) params.append('lat', lat.toString());
+    if (lon !== undefined) params.append('lon', lon.toString());
+    const res = await fetch(`${API_BASE}/ev/stations?${params.toString()}`);
+    return res.json();
+  },
+
+  async getTrafficCorridors(): Promise<CorridorTrafficStatus[]> {
+    const res = await fetch(`${API_BASE}/traffic-dept/corridors`);
+    return res.json();
+  },
+
+  async getTrafficIncidents(): Promise<TrafficIncident[]> {
+    const res = await fetch(`${API_BASE}/traffic-dept/incidents`);
+    return res.json();
+  },
+
+  async triggerEmergencyPreemption(routeId: string = 'route_hitec_gachibowli', enable: boolean = true): Promise<any> {
+    const res = await fetch(`${API_BASE}/traffic-dept/emergency-preemption`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ route_id: routeId, enable }),
     });
     return res.json();
   },

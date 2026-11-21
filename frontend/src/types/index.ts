@@ -82,6 +82,49 @@ export interface VehicleEventLog {
   speed_kmh: number;
 }
 
+export interface EVChargingStation {
+  station_id: string;
+  name: string;
+  operator: string;
+  latitude: number;
+  longitude: number;
+  distance_m?: number | null;
+  total_ports: number;
+  available_ports: number;
+  charger_types: string[];
+  power_kw: number;
+  price_per_kwh: number;
+  wait_time_minutes: number;
+  status: string;
+}
+
+export interface TrafficIncident {
+  incident_id: string;
+  timestamp: string;
+  incident_type: string;
+  severity: string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  vehicle_id: string;
+  vehicle_plate: string;
+  status: string;
+  speed_kmh?: number | null;
+  fine_amount_inr?: number | null;
+}
+
+export interface CorridorTrafficStatus {
+  corridor_id: string;
+  name: string;
+  congestion_level: string;
+  level_of_service: string;
+  average_speed_kmh: number;
+  active_vehicle_count: number;
+  incident_count: number;
+  aqi_index: number;
+  green_wave_active: boolean;
+}
+
 export interface VehicleState {
   vehicle_id: string;
   vehicle_type: VehicleType;
@@ -96,6 +139,16 @@ export interface VehicleState {
   route_id: string;
   progress_pct: number;
   is_running: boolean;
+  
+  // EV Fleet & Battery Telemetry
+  is_ev?: boolean;
+  battery_soc_pct?: number;
+  battery_soh_pct?: number;
+  estimated_range_km?: number;
+  battery_temp_c?: number;
+  energy_consumption_kwh?: number;
+  low_battery_alert?: boolean;
+  nearby_charging_stations?: EVChargingStation[];
   
   // Rule-based Behavior State Machine
   behavior_state?: VehicleBehaviorState;
