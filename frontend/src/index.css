@@ -6,17 +6,33 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 min-h-screen overflow-x-hidden font-sans antialiased;
+    @apply bg-[#F6F8FB] text-[#0F172A] min-h-screen overflow-x-hidden font-sans antialiased;
   }
 }
 
-/* Premium Mobility UI Design System */
+/* WCAG 2.1 AA Interactive Card System */
+.interactive-card {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.interactive-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
+}
+
+.interactive-card:focus-visible {
+  outline: 2px solid #0A2540;
+  outline-offset: 2px;
+}
+
+/* Mobility & Civic Design Tokens */
 .mobility-card {
-  @apply bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200;
+  @apply bg-white border border-slate-200/90 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200;
 }
 
 .mobility-card-subtle {
-  @apply bg-slate-50/80 border border-slate-200/60 rounded-xl;
+  @apply bg-[#F1F5F9]/80 border border-slate-200/70 rounded-xl;
 }
 
 /* High-Tech Automotive Cockpit Glassmorphism */
@@ -57,19 +73,19 @@
 
 /* Pulsing & Radar Halo Animations */
 .pulse-green {
-  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 0 rgba(0, 135, 90, 0.5);
   animation: pulse-ring-green 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
 }
 
 @keyframes pulse-ring-green {
   0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 0 0 rgba(0, 135, 90, 0.6);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 10px rgba(0, 135, 90, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 rgba(0, 135, 90, 0);
   }
 }
 
@@ -77,8 +93,8 @@
 .debug-grid-overlay {
   background-size: 24px 24px;
   background-image: 
-    linear-gradient(to right, rgba(0, 135, 90, 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 135, 90, 0.08) 1px, transparent 1px);
+    linear-gradient(to right, rgba(10, 37, 64, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10, 37, 64, 0.06) 1px, transparent 1px);
 }
 
 .debug-bounding-box {
