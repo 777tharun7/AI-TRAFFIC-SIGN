@@ -296,8 +296,13 @@ class VehicleSimulator:
             self.estimated_range_km = round(self.battery_soc_pct * 4.0, 1)
             self.low_battery_alert = self.battery_soc_pct < 20.0
 
-        nearby_ev_stations = traffic_dept_service.get_ev_stations(self.lat, self.lon)[:4]
+        return self.get_state()
 
+    def get_state(self) -> VehicleState:
+        """Returns the current VehicleState snapshot without advancing kinematics or physics."""
+        wps = self.route["waypoints"]
+        num_segs = len(wps) - 1
+        nearby_ev_stations = traffic_dept_service.get_ev_stations(self.lat, self.lon)[:4]
         overall_progress = ((self.current_segment_idx + self.segment_fraction) / max(1, num_segs)) * 100.0
 
         return VehicleState(

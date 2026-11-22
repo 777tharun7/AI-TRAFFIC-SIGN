@@ -213,7 +213,7 @@ async def detect_signs(
             
     # Perform Fusion with active vehicle context
     detection_items = [DetectionItem(**d) for d in result.get("detections", [])]
-    veh_state = vehicle_simulator.step(0.0)
+    veh_state = vehicle_simulator.get_state()
     fused = fusion_engine.fuse_events(
         vision_detections=detection_items,
         active_road_events=veh_state.active_events,
@@ -252,7 +252,7 @@ async def get_all_road_events():
 
 @router.get("/events/active", response_model=List[RoadEvent], summary="Get currently active events for simulated vehicle")
 async def get_active_events():
-    state = vehicle_simulator.step(0.0)
+    state = vehicle_simulator.get_state()
     return state.active_events
 
 # ----------------- VIRTUAL RIU -----------------
@@ -307,11 +307,11 @@ async def get_vehicle_by_plate(reg_num: str):
 
 @router.get("/vehicles", response_model=List[VehicleState], summary="Get state of all active vehicles")
 async def get_vehicles():
-    return [vehicle_simulator.step(0.0)]
+    return [vehicle_simulator.get_state()]
 
 @router.get("/vehicles/{vehicle_id}", response_model=VehicleState, summary="Get single vehicle telemetry")
 async def get_vehicle_state(vehicle_id: str):
-    return vehicle_simulator.step(0.0)
+    return vehicle_simulator.get_state()
 
 class VehicleControlRequest(BaseModel):
     action: str # "play", "pause", "reset", "speed_up", "slow_down", "set_route", "set_type"
@@ -339,7 +339,7 @@ async def control_vehicle(vehicle_id: str, req: VehicleControlRequest):
     else:
         raise HTTPException(status_code=400, detail=f"Unknown action: {req.action}")
         
-    return vehicle_simulator.step(0.0)
+    return vehicle_simulator.get_state()
 
 @router.get("/routes", summary="Get all available Hyderabad simulated routes")
 async def get_routes():
@@ -456,7 +456,7 @@ class CVDVInspectRequest(BaseModel):
 
 @router.post("/cvdv/inspect", summary="Get full CV -> DV -> HUD telemetry breakdown")
 async def inspect_cvdv(req: CVDVInspectRequest):
-    veh_state = vehicle_simulator.step(0.0).model_dump()
+    veh_state = vehicle_simulator.get_state().model_dump()
     detection = {
         "class_id": req.class_id,
         "confidence": req.confidence,

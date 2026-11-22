@@ -35,6 +35,9 @@ class VehicleBehaviorEngine:
         self.min_stop_sign_duration_s = 3.0
         self.police_stop_timer = 0.0
         self.min_police_stop_duration_s = 5.0
+        # Cooldown map: event_id -> cleared_monotonic_timestamp
+        self.cleared_stop_event_timestamps: Dict[str, float] = {}
+        self.cleared_police_event_timestamps: Dict[str, float] = {}
         self.cleared_stop_event_ids: set = set()
         self.cleared_police_event_ids: set = set()
         self.event_log: List[Dict[str, Any]] = []
@@ -186,11 +189,12 @@ class VehicleBehaviorEngine:
         # PRIORITY 2 (CRITICAL): TRAFFIC POLICE MANUAL HALT / VIP MINISTER CONVOY
         # -------------------------------------------------------------
         # Purge cleared events when vehicle has moved away (> 45m)
-        self.cleared_police_event_ids = {
-            eid for eid in self.cleared_police_event_ids
-            if any(e.event_id == eid and (e.distance_to_vehicle or 999.0) < 45.0 for e in active_events + approaching_events)
-        }
-        police_events = [e for e in active_events + approaching_events if e.event_type in ["POLICE_HALT", "VIP_CONVOY"] and e.event_id not in self.cleared_police_event_ids]
+        now_ts = time.time()
+        police_events = [
+            e for e in active_events + approaching_events 
+            if e.event_type in ["POLICE_HALT", "VIP_CONVOY"] 
+            and (now_ts - self.cleared_police_event_timestamps.get(e.event_id, 0.0) > 35.0)
+        ]
         if police_events:
             pol_evt = police_events[0]
             dist_to_pol = pol_evt.distance_to_vehicle or haversine_distance(current_lat, current_lon, pol_evt.latitude, pol_evt.longitude)
@@ -200,7 +204,7 @@ class VehicleBehaviorEngine:
                 self.police_stop_timer += delta_seconds
                 if self.police_stop_timer >= self.min_police_stop_duration_s:
                     self.police_stop_timer = 0.0
-                    self.cleared_police_event_ids.add(pol_evt.event_id)
+                    self.cleared_police_event_timestamps[pol_evt.event_id] = now_ts
                     decision["target_speed_kmh"] = default_corridor_speed_kmh
                     decision["target_accel_mps2"] = self.comfort_accel
                     decision["behavior_state"] = VehicleBehaviorState.RESUMING
@@ -235,12 +239,11 @@ class VehicleBehaviorEngine:
         # -------------------------------------------------------------
         # PRIORITY 3 (CRITICAL): STOP SIGNS (MANDATORY 3-SECOND STOP)
         # -------------------------------------------------------------
-        # Purge cleared stop events when vehicle has moved away (> 45m)
-        self.cleared_stop_event_ids = {
-            eid for eid in self.cleared_stop_event_ids
-            if any(e.event_id == eid and (e.distance_to_vehicle or 999.0) < 45.0 for e in active_events + approaching_events)
-        }
-        stop_events = [e for e in active_events + approaching_events if e.event_type == "STOP" and e.event_id not in self.cleared_stop_event_ids]
+        stop_events = [
+            e for e in active_events + approaching_events 
+            if e.event_type == "STOP" 
+            and (now_ts - self.cleared_stop_event_timestamps.get(e.event_id, 0.0) > 35.0)
+        ]
         if stop_events:
             stop_evt = stop_events[0]
             dist_to_stop = stop_evt.distance_to_vehicle or haversine_distance(current_lat, current_lon, stop_evt.latitude, stop_evt.longitude)
@@ -251,7 +254,7 @@ class VehicleBehaviorEngine:
                 if self.stop_wait_timer >= self.min_stop_sign_duration_s:
                     # Finished mandatory 3s stop -> Mark cleared and Resume!
                     self.stop_wait_timer = 0.0
-                    self.cleared_stop_event_ids.add(stop_evt.event_id)
+                    self.cleared_stop_event_timestamps[stop_evt.event_id] = now_ts
                     decision["target_speed_kmh"] = default_corridor_speed_kmh
                     decision["target_accel_mps2"] = self.comfort_accel
                     decision["behavior_state"] = VehicleBehaviorState.RESUMING

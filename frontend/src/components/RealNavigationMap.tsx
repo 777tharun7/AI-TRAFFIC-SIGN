@@ -89,6 +89,20 @@ export const RealNavigationMap: React.FC<Props> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [showLayersMenu, setShowLayersMenu] = useState<boolean>(false);
+  const layersMenuRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close layers dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (layersMenuRef.current && !layersMenuRef.current.contains(e.target as Node)) {
+        setShowLayersMenu(false);
+      }
+    };
+    if (showLayersMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showLayersMenu]);
 
   const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev);
@@ -437,12 +451,10 @@ export const RealNavigationMap: React.FC<Props> = ({
           }
 
           if (isFollowing && mapRef.current) {
-            mapRef.current.easeTo({
-              center: [curLng, curLat],
-              bearing: mapMode === '3D' ? vehicle.heading : 0,
-              duration: 80,
-              easing: (easeT) => easeT
-            });
+            mapRef.current.setCenter([curLng, curLat]);
+            if (mapMode === '3D') {
+              mapRef.current.setBearing(vehicle.heading);
+            }
           }
         }
 
@@ -454,12 +466,19 @@ export const RealNavigationMap: React.FC<Props> = ({
       animFrameIdRef.current = requestAnimationFrame(animateStep);
     }
 
+    if (vehicleMarkerRef.current) {
+      const vehEl = vehicleMarkerRef.current.getElement();
+      if (vehEl) {
+        vehEl.style.display = layers.vehicle ? 'flex' : 'none';
+      }
+    }
+
     return () => {
       if (animFrameIdRef.current) {
         cancelAnimationFrame(animFrameIdRef.current);
       }
     };
-  }, [vehicle?.latitude, vehicle?.longitude, vehicle?.heading, vehicle?.speed_kmh, isFollowing, mapMode]);
+  }, [vehicle?.latitude, vehicle?.longitude, vehicle?.heading, vehicle?.speed_kmh, isFollowing, mapMode, layers.vehicle]);
 
   // Update Callouts, Traffic Signals & Road Events
   useEffect(() => {
@@ -706,23 +725,38 @@ export const RealNavigationMap: React.FC<Props> = ({
         : 'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative'
     }`}>
       
-      {/* 1. TOP HEADER BAR (Exact Match with Reference: Live Hyderabad Corridor Simulation) */}
-      <div className={`p-3 px-5 border-b border-slate-200 ${isFullscreen ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white/95'} backdrop-blur-md flex flex-wrap items-center justify-between gap-3 z-20`}>
+      {/* UNIFIED CORRIDOR NAVIGATION & MONITORING HEADER */}
+      <div className={`p-3 px-5 border-b border-slate-200 ${
+        isFullscreen ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white/95'
+      } backdrop-blur-md flex flex-wrap items-center justify-between gap-3 z-20`}>
         
-        {/* Left: Corridor Title & Speed */}
-        <div className="flex items-center gap-3">
+        {/* Left: Corridor Identity, Speed & Playback Controls */}
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center gap-2 text-slate-900 font-extrabold text-sm tracking-tight">
             <span className="w-2.5 h-2.5 rounded-full bg-[#00875A] animate-pulse" />
-            <span>Live Hyderabad Corridor Simulation</span>
+            <span className={isFullscreen ? 'text-white' : 'text-slate-900'}>
+              {vehicle?.current_road || 'Hyderabad Connected Corridor'}
+            </span>
           </div>
 
           <div className="bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-mono font-bold text-slate-700">
             Speed: {Math.round(currentSpeed)} km/h
           </div>
 
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00875A]" />
+            <span>V2X: Live</span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-[11px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+            <span>AI Vision: 43-Class</span>
+          </div>
+
           {onControl && (
             <div className="flex items-center gap-1.5 ml-1">
               <button
+                type="button"
                 onClick={() => onControl(vehicle?.is_running ? 'pause' : 'play')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs ${
                   vehicle?.is_running
@@ -734,6 +768,7 @@ export const RealNavigationMap: React.FC<Props> = ({
                 {vehicle?.is_running ? '⏸ Pause' : '▶ Play'}
               </button>
               <button
+                type="button"
                 onClick={() => onControl('reset')}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition-all cursor-pointer shadow-2xs"
                 title="Reset vehicle to start of corridor"
@@ -744,68 +779,31 @@ export const RealNavigationMap: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Right: V2X, AI Vision & Primary Fullscreen Monitor Button */}
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-[#00875A]" />
-            <span>V2X: Connected</span>
-          </div>
-
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-blue-600" />
-            <span>AI Vision: 43-Class Active</span>
-          </div>
-
-          <button
-            onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer ml-1"
-            title={isFullscreen ? "Exit Fullscreen (ESC)" : "Open Full Screen Map Monitor"}
-          >
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4 text-cyan-200" />}
-            <span className="font-mono font-bold">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}</span>
-          </button>
-        </div>
-
-      </div>
-
-      {/* 2. INNER TOOLBAR & FILTER CONTROLS */}
-      <div className="p-2.5 px-5 border-b border-slate-100 bg-[#F8FAFC] flex flex-wrap items-center justify-between gap-3 z-20 text-xs">
-        
-        {/* Left Badges */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl font-bold text-slate-800 border border-slate-200 shadow-2xs">
-            <MapPin className="w-3.5 h-3.5 text-blue-600" />
-            <span>Hyderabad Connected Corridor</span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#E6F8F3] text-[#00875A] font-semibold border border-[#00875A]/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00875A]" />
-            <span>Live Navigation</span>
-          </div>
-        </div>
-
-        {/* Right Controls */}
-        <div className="flex items-center gap-2">
+        {/* Right: Follow Camera, Map Style, 2D/3D, Layers & Fullscreen Button */}
+        <div className="flex items-center gap-2 flex-wrap">
           
-          {/* Follow Vehicle */}
+          {/* Follow Vehicle Toggle */}
           <button
+            type="button"
             onClick={() => {
               setIsFollowing(!isFollowing);
               if (!isFollowing) handleRecenter();
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               isFollowing 
-                ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs' 
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                ? 'bg-blue-600 text-white shadow-xs font-extrabold' 
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
             }`}
+            title="Keep map camera centered on vehicle"
           >
             <Locate className="w-3.5 h-3.5" />
-            <span>Follow Vehicle</span>
+            <span>Follow</span>
           </button>
 
-          {/* Map Style Selector: Street, Dark, OSM, Satellite, Schematic */}
+          {/* Map Style Selector: Street, Dark, OSM, Satellite */}
           <div className="p-0.5 rounded-xl bg-slate-200/70 border border-slate-200 flex items-center text-[11px] font-bold">
             <button
+              type="button"
               onClick={() => handleStyleChange('voyager')}
               className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                 mapStyleType === 'voyager' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
@@ -814,6 +812,7 @@ export const RealNavigationMap: React.FC<Props> = ({
               Street
             </button>
             <button
+              type="button"
               onClick={() => handleStyleChange('dark')}
               className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                 mapStyleType === 'dark' ? 'bg-slate-900 text-emerald-400 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
@@ -822,6 +821,7 @@ export const RealNavigationMap: React.FC<Props> = ({
               Dark
             </button>
             <button
+              type="button"
               onClick={() => handleStyleChange('osm')}
               className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                 mapStyleType === 'osm' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
@@ -830,6 +830,7 @@ export const RealNavigationMap: React.FC<Props> = ({
               OSM
             </button>
             <button
+              type="button"
               onClick={() => handleStyleChange('satellite')}
               className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                 mapStyleType === 'satellite' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
@@ -837,30 +838,23 @@ export const RealNavigationMap: React.FC<Props> = ({
             >
               Satellite
             </button>
-            <button
-              onClick={() => handleStyleChange('schematic')}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                mapStyleType === 'schematic' ? 'bg-[#00875A] text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Digital Twin Schematic Vector Map"
-            >
-              Schematic
-            </button>
           </div>
 
           {/* 2D / 3D Toggle */}
           <div className="p-0.5 rounded-xl bg-slate-200/70 border border-slate-200 flex items-center text-xs font-bold">
             <button
+              type="button"
               onClick={() => setMapMode('2D')}
-              className={`px-3 py-1 rounded-lg transition-all ${
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                 mapMode === '2D' ? 'bg-white text-slate-900 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               2D
             </button>
             <button
+              type="button"
               onClick={() => setMapMode('3D')}
-              className={`px-3 py-1 rounded-lg transition-all ${
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                 mapMode === '3D' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -869,10 +863,11 @@ export const RealNavigationMap: React.FC<Props> = ({
           </div>
 
           {/* Layers Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={layersMenuRef}>
             <button
+              type="button"
               onClick={() => setShowLayersMenu(!showLayersMenu)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 shadow-2xs transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 shadow-2xs transition-colors cursor-pointer text-xs"
             >
               <Layers className="w-3.5 h-3.5" />
               <span>Layers</span>
@@ -903,18 +898,19 @@ export const RealNavigationMap: React.FC<Props> = ({
             )}
           </div>
 
-          {/* Fullscreen Map Monitor Mode Button */}
+          {/* Fullscreen Map Mode Button */}
           <button
+            type="button"
             onClick={toggleFullscreen}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all shadow-xs cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer ${
               isFullscreen
-                ? 'bg-blue-600 text-white border border-blue-700'
-                : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200'
+                ? 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-400'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
             }`}
-            title={isFullscreen ? "Exit Fullscreen (ESC)" : "Fullscreen Map Monitor"}
+            title={isFullscreen ? "Exit Fullscreen (ESC)" : "Open Fullscreen Corridor Radar"}
           >
-            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5 text-white" /> : <Maximize2 className="w-3.5 h-3.5 text-blue-600" />}
-            <span className="font-mono text-xs">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}</span>
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            <span className="font-mono">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}</span>
           </button>
 
         </div>

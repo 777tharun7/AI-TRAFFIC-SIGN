@@ -3,7 +3,8 @@ import {
   Play, Pause, RotateCcw, Siren, ShieldAlert, Award, Volume2, 
   VolumeX, Radio, Sparkles, Navigation, Gauge, FileText, 
   CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, ArrowUp, 
-  ArrowDown, Car, Shield, Eye, Flame, MapPin, Zap, UserCheck
+  ArrowDown, Car, Shield, Eye, Flame, MapPin, Zap, UserCheck,
+  Camera, Sliders, Crosshair, Check, ChevronRight, Activity, Clock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { VehicleState } from '../types';
@@ -27,7 +28,7 @@ export interface ScenarioConfig {
   weather: 'clear' | 'night' | 'rain';
   description: string;
   targetGlosaSpeed: number;
-  initialAmbulanceDist: number; // relative to player (negative = behind)
+  initialAmbulanceDist: number;
   signals: { dist: number; cycle: number; greenSec: number; name: string }[];
   zones: { start: number; end: number; limit: number; name: string }[];
 }
@@ -64,7 +65,7 @@ export const SCENARIOS: ScenarioConfig[] = [
     totalDistanceM: 1100,
     weather: 'clear',
     targetGlosaSpeed: 45,
-    initialAmbulanceDist: -220, // rapidly approaches from behind
+    initialAmbulanceDist: -220,
     description: 'A 108 emergency ambulance is approaching rapidly from behind. Safely yield the center lane to create a green corridor.',
     signals: [
       { dist: 350, cycle: 55, greenSec: 28, name: 'Road 36 Checkpost' },
@@ -150,13 +151,16 @@ export const LiveExperienceStudio: React.FC<Props> = ({
   const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Active Mission Configuration
+  // Active Mission & Visual Features Configuration
   const [selectedScenario, setSelectedScenario] = useState<ScenarioConfig>(SCENARIOS[0]);
-  const [viewMode, setViewMode] = useState<'driver' | 'birds_eye' | 'police_console'>('driver');
+  const [cameraPerspective, setCameraPerspective] = useState<'3d_chase' | 'top_down'>('3d_chase');
+  const [showAiVision, setShowAiVision] = useState<boolean>(true);
   const [isAutoPilot, setIsAutoPilot] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [showCertificate, setShowCertificate] = useState<boolean>(false);
   const [activeChallan, setActiveChallan] = useState<ChallanRecord | null>(null);
+  const [cameraFlash, setCameraFlash] = useState<boolean>(false);
+  const [turnIndicator, setTurnIndicator] = useState<'none' | 'left' | 'right'>('none');
 
   // Game/Simulation Mutable State Ref (for 60fps canvas loop)
   const sim = useRef({
@@ -165,9 +169,10 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     // Player Car Dynamics
     carDist: 40,           // meters along corridor
     carSpeed: 38,          // km/h
-    targetSpeed: 42,       // km/h (target in autopilot)
+    targetSpeed: 42,       // km/h
     carLane: 1,            // 0=Left, 1=Center, 2=Right
     carVisualX: 1,         // interpolated 0.0 - 2.0
+    steeringAngle: 0,      // degrees -20 to +20
     isBraking: false,
     isAccelerating: false,
     isHandbrake: false,
@@ -177,7 +182,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     ambSpeed: 68,          // km/h
     ambLane: 1,            // usually center lane
     ambYielded: false,
-    // Scoring
+    // Scoring & Objectives
     score: 95,
     speedViolations: 0,
     signalViolations: 0,
@@ -186,15 +191,14 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     distanceDriven: 0,
     // Traffic Cars
     traffic: [
-      { id: 'c1', dist: 120, lane: 0, visualLane: 0, speed: 42, color: '#38bdf8' },
-      { id: 'c2', dist: 220, lane: 2, visualLane: 2, speed: 45, color: '#fbbf24' },
-      { id: 'c3', dist: 480, lane: 1, visualLane: 1, speed: 38, color: '#a855f7' },
-      { id: 'c4', dist: 720, lane: 0, visualLane: 0, speed: 44, color: '#f43f5e' },
-      { id: 'c5', dist: 960, lane: 2, visualLane: 2, speed: 40, color: '#34d399' }
+      { id: 'c1', dist: 120, lane: 0, visualLane: 0, speed: 42, color: '#38bdf8', type: 'Sedan' },
+      { id: 'c2', dist: 220, lane: 2, visualLane: 2, speed: 45, color: '#fbbf24', type: 'Auto' },
+      { id: 'c3', dist: 480, lane: 1, visualLane: 1, speed: 38, color: '#a855f7', type: 'SUV' },
+      { id: 'c4', dist: 720, lane: 0, visualLane: 0, speed: 44, color: '#f43f5e', type: 'Sedan' },
+      { id: 'c5', dist: 960, lane: 2, visualLane: 2, speed: 40, color: '#34d399', type: 'Bus' }
     ],
     // Challans history
     challans: [] as ChallanRecord[],
-    // Last violation timestamp to avoid spam
     lastViolationTime: 0
   });
 
@@ -212,19 +216,49 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     ambulanceDistBehind: 280,
     ambulanceIncoming: true,
     upcomingSignal: { name: 'Cyber Towers', state: 'GREEN', sec: 18, dist: 240 },
-    challanCount: 0
+    challanCount: 0,
+    objectives: {
+      glosaWave: true,
+      ambulanceYield: false,
+      signalClear: true,
+      speedCompliance: true
+    }
   });
 
-  // Web Audio Context for Authentic Sound Effects (Pure Web Audio, 0 dependencies)
+  // Web Audio Context for Authentic Dynamic Sound Synthesis
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const motorOscRef = useRef<OscillatorNode | null>(null);
+  const motorGainRef = useRef<GainNode | null>(null);
+
+  const initAudio = useCallback(() => {
+    if (!audioCtxRef.current) {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioCtxRef.current = ctx;
+
+      // Electric motor whine oscillator
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      gain.gain.setValueAtTime(0.02, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+
+      motorOscRef.current = osc;
+      motorGainRef.current = gain;
+    }
+    if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  }, []);
 
   const playBeep = useCallback((freq = 580, type: OscillatorType = 'sine', duration = 0.12) => {
     if (!soundEnabled) return;
     try {
-      const ctx = audioCtxRef.current || new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioCtxRef.current = ctx;
-      if (ctx.state === 'suspended') ctx.resume();
-
+      initAudio();
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = type;
@@ -238,15 +272,14 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     } catch {
       // Audio autoplay policy fallback
     }
-  }, [soundEnabled]);
+  }, [soundEnabled, initAudio]);
 
   const playSirenBurst = useCallback(() => {
     if (!soundEnabled) return;
     try {
-      const ctx = audioCtxRef.current || new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioCtxRef.current = ctx;
-      if (ctx.state === 'suspended') ctx.resume();
-
+      initAudio();
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -263,7 +296,29 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     } catch {
       // silent catch
     }
-  }, [soundEnabled]);
+  }, [soundEnabled, initAudio]);
+
+  const playCameraShutter = useCallback(() => {
+    if (!soundEnabled) return;
+    try {
+      initAudio();
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(900, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.18);
+    } catch {
+      // silent
+    }
+  }, [soundEnabled, initAudio]);
 
   // Restart / Switch Scenario
   const resetScenario = useCallback((scenario: ScenarioConfig) => {
@@ -274,6 +329,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     sim.current.targetSpeed = scenario.targetGlosaSpeed;
     sim.current.carLane = 1;
     sim.current.carVisualX = 1;
+    sim.current.steeringAngle = 0;
     sim.current.isBraking = false;
     sim.current.isAccelerating = false;
     sim.current.ambulanceActive = true;
@@ -291,24 +347,31 @@ export const LiveExperienceStudio: React.FC<Props> = ({
   // Keyboard controls listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if typing in an input
       if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return;
 
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
         sim.current.isAccelerating = true;
         sim.current.isBraking = false;
+        initAudio();
       } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
         sim.current.isBraking = true;
         sim.current.isAccelerating = false;
+        initAudio();
       } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
         if (sim.current.carLane > 0) {
           sim.current.carLane -= 1;
+          sim.current.steeringAngle = -18;
+          setTurnIndicator('left');
           playBeep(480, 'triangle', 0.08);
+          setTimeout(() => { sim.current.steeringAngle = 0; setTurnIndicator('none'); }, 300);
         }
       } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
         if (sim.current.carLane < 2) {
           sim.current.carLane += 1;
+          sim.current.steeringAngle = 18;
+          setTurnIndicator('right');
           playBeep(480, 'triangle', 0.08);
+          setTimeout(() => { sim.current.steeringAngle = 0; setTurnIndicator('none'); }, 300);
         }
       } else if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
@@ -336,7 +399,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [playBeep]);
+  }, [playBeep, initAudio]);
 
   // Main 60 FPS Physics & Canvas Render Loop
   useEffect(() => {
@@ -391,11 +454,9 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         // 3. Autonomous Autopilot Decision
         if (isAutoPilot) {
           if (upcomingSig && upcomingSig.state === 'RED' && upcomingSig.dist < 85) {
-            // Decelerate smoothly to stop line
             s.isBraking = true;
             s.isAccelerating = false;
           } else if (upcomingSig && upcomingSig.state === 'GREEN' && upcomingSig.dist < 150) {
-            // GLOSA target match
             if (s.carSpeed < config.targetGlosaSpeed) {
               s.isAccelerating = true;
               s.isBraking = false;
@@ -407,7 +468,6 @@ export const LiveExperienceStudio: React.FC<Props> = ({
               s.isBraking = false;
             }
           } else {
-            // Normal cruise at speed limit - 3
             if (s.carSpeed < activeLimit - 4) {
               s.isAccelerating = true;
               s.isBraking = false;
@@ -416,7 +476,6 @@ export const LiveExperienceStudio: React.FC<Props> = ({
             }
           }
 
-          // If ambulance is behind in our lane, autopilot yields to the left
           const ambDistBehind = s.carDist - s.ambDist;
           if (s.ambulanceActive && ambDistBehind > 0 && ambDistBehind < 180 && s.carLane === s.ambLane) {
             if (s.carLane > 0) s.carLane = 0;
@@ -425,9 +484,9 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         }
 
         // 4. Vehicle Longitudinal Physics
-        const accelRate = config.weather === 'rain' ? 12 : 16;  // km/h per sec
-        const brakeRate = config.weather === 'rain' ? 24 : 36;  // km/h per sec
-        const dragRate = 4.5;                                   // km/h per sec
+        const accelRate = config.weather === 'rain' ? 12 : 16;
+        const brakeRate = config.weather === 'rain' ? 24 : 36;
+        const dragRate = 4.5;
 
         if (s.isHandbrake) {
           s.carSpeed = Math.max(0, s.carSpeed - brakeRate * 1.5 * dt);
@@ -436,14 +495,20 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         } else if (s.isAccelerating) {
           s.carSpeed = Math.min(activeLimit + 30, s.carSpeed + accelRate * dt);
         } else {
-          // Natural rolling drag
           s.carSpeed = Math.max(0, s.carSpeed - dragRate * dt);
         }
 
-        // Move car along corridor
         const speedMs = (s.carSpeed * 1000) / 3600;
         s.carDist += speedMs * dt;
         s.distanceDriven += speedMs * dt;
+
+        // Modulate continuous EV motor audio synthesizer pitch
+        if (motorOscRef.current && motorGainRef.current && soundEnabled && audioCtxRef.current) {
+          const targetFreq = 100 + (s.carSpeed * 5.2);
+          motorOscRef.current.frequency.setTargetAtTime(targetFreq, audioCtxRef.current.currentTime, 0.08);
+          const targetGain = s.isAccelerating ? 0.05 : 0.02;
+          motorGainRef.current.gain.setTargetAtTime(targetGain, audioCtxRef.current.currentTime, 0.08);
+        }
 
         // Loop corridor seamlessly
         if (s.carDist > config.totalDistanceM) {
@@ -451,7 +516,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           s.ambDist = s.carDist + config.initialAmbulanceDist;
         }
 
-        // 5. Lateral Spring Smoothing (carVisualX)
+        // 5. Lateral Spring Smoothing
         const laneLerpSpeed = 10;
         s.carVisualX += (s.carLane - s.carVisualX) * (laneLerpSpeed * dt);
 
@@ -462,12 +527,10 @@ export const LiveExperienceStudio: React.FC<Props> = ({
 
           const ambBehindDist = s.carDist - s.ambDist;
 
-          // Play periodic siren when ambulance is within 250m
           if (ambBehindDist > 0 && ambBehindDist < 250 && Math.floor(s.simTime * 2.5) % 3 === 0) {
             playSirenBurst();
           }
 
-          // Check if player yielded lane
           if (ambBehindDist > 0 && ambBehindDist < 60 && s.carLane !== s.ambLane && !s.ambYielded) {
             s.ambYielded = true;
             s.ambYields += 1;
@@ -475,11 +538,12 @@ export const LiveExperienceStudio: React.FC<Props> = ({
             playBeep(880, 'sine', 0.2);
           }
 
-          // If ambulance overtakes player and player blocked
           if (ambBehindDist < -10 && ambBehindDist > -30 && s.carLane === s.ambLane && !s.ambYielded) {
-            // Violation: Failure to yield to emergency vehicle (Section 194E MVA 2019)
             if (s.simTime - s.lastViolationTime > 6) {
               s.lastViolationTime = s.simTime;
+              setCameraFlash(true);
+              setTimeout(() => setCameraFlash(false), 250);
+              playCameraShutter();
               const challan: ChallanRecord = {
                 id: `TS-EVP-${Math.floor(1000 + Math.random() * 9000)}`,
                 type: 'Obstruction to Emergency Ambulance (Sec 194E)',
@@ -493,11 +557,9 @@ export const LiveExperienceStudio: React.FC<Props> = ({
               s.challans.unshift(challan);
               s.score = Math.max(40, s.score - 25);
               setActiveChallan(challan);
-              playBeep(220, 'square', 0.35);
             }
           }
 
-          // Reset ambulance when far ahead
           if (s.ambDist > s.carDist + 400) {
             s.ambDist = s.carDist - 350;
             s.ambYielded = false;
@@ -509,6 +571,9 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           s.lastViolationTime = s.simTime;
           s.speedViolations += 1;
           s.score = Math.max(30, s.score - 10);
+          setCameraFlash(true);
+          setTimeout(() => setCameraFlash(false), 250);
+          playCameraShutter();
           const challan: ChallanRecord = {
             id: `TS-SPD-${Math.floor(1000 + Math.random() * 9000)}`,
             type: `Overspeeding (${Math.round(s.carSpeed)} in ${activeLimit} km/h Zone)`,
@@ -521,7 +586,6 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           };
           s.challans.unshift(challan);
           setActiveChallan(challan);
-          playBeep(180, 'sawtooth', 0.3);
         }
 
         // 8. e-Challan: Red Light Jump Enforcement
@@ -530,6 +594,9 @@ export const LiveExperienceStudio: React.FC<Props> = ({
             s.lastViolationTime = s.simTime;
             s.signalViolations += 1;
             s.score = Math.max(20, s.score - 20);
+            setCameraFlash(true);
+            setTimeout(() => setCameraFlash(false), 250);
+            playCameraShutter();
             const challan: ChallanRecord = {
               id: `TS-SIG-${Math.floor(1000 + Math.random() * 9000)}`,
               type: `Red Light Violation (${upcomingSig.name})`,
@@ -542,7 +609,6 @@ export const LiveExperienceStudio: React.FC<Props> = ({
             };
             s.challans.unshift(challan);
             setActiveChallan(challan);
-            playBeep(150, 'sawtooth', 0.45);
           }
         }
 
@@ -553,7 +619,6 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           if (car.dist < s.carDist - 120) car.dist = s.carDist + 350 + Math.random() * 200;
           if (car.dist > s.carDist + 500) car.dist = s.carDist - 100;
 
-          // Traffic car yields to ambulance if ambulance is directly behind
           if (s.ambulanceActive) {
             const ambDistToTraffic = car.dist - s.ambDist;
             if (ambDistToTraffic > 0 && ambDistToTraffic < 80 && car.lane === s.ambLane) {
@@ -564,7 +629,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         }
       }
 
-      // 10. Throttle UI Sync State (every ~100ms)
+      // 10. Throttle UI Sync State (10 Hz)
       uiUpdateTimer += dt;
       if (uiUpdateTimer > 0.1) {
         uiUpdateTimer = 0;
@@ -606,247 +671,359 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           ambulanceDistBehind: ambBehind,
           ambulanceIncoming: ambBehind > 0 && ambBehind < 260,
           upcomingSignal: curSig,
-          challanCount: s.challans.length
+          challanCount: s.challans.length,
+          objectives: {
+            glosaWave: isMatched,
+            ambulanceYield: s.ambYielded || ambBehind > 300,
+            signalClear: curSig.state === 'GREEN',
+            speedCompliance: s.carSpeed <= activeLimit
+          }
         });
       }
 
       // =========================================================
-      // 11. CANVAS RENDERING ENGINE
+      // 11. ADVANCED CANVAS RENDERING ENGINE
       // =========================================================
       const w = rect.width;
       const h = rect.height;
 
       ctx.clearRect(0, 0, w, h);
 
-      // Environment Background (Grass / Roadside)
+      // Sky & Horizon Gradient
+      const is3D = cameraPerspective === '3d_chase';
+      const horizonY = is3D ? h * 0.22 : 0;
+
+      if (is3D) {
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+        skyGrad.addColorStop(0, config.weather === 'night' ? '#030712' : '#0f172a');
+        skyGrad.addColorStop(1, config.weather === 'rain' ? '#1e293b' : '#334155');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, horizonY);
+
+        // Distant Horizon Cyber Skyline silhouette
+        ctx.fillStyle = '#090d16';
+        ctx.beginPath();
+        for (let bx = 0; bx < w; bx += 32) {
+          const bh = 15 + Math.sin(bx * 0.05) * 12;
+          ctx.rect(bx, horizonY - bh, 28, bh);
+        }
+        ctx.fill();
+      }
+
+      // Ground (Roadside Terrain)
       ctx.fillStyle = config.weather === 'rain' ? '#0f172a' : '#1e293b';
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillRect(0, horizonY, w, h - horizonY);
 
-      // Road Geometry (Centered 3-Lane Highway)
-      const roadWidth = Math.min(w * 0.75, 420);
-      const roadX = (w - roadWidth) / 2;
-      const laneWidth = roadWidth / 3;
+      // Road Geometry Calculation
+      const roadBottomWidth = Math.min(w * 0.85, 460);
+      const roadTopWidth = is3D ? roadBottomWidth * 0.42 : roadBottomWidth;
+      const roadBottomX = (w - roadBottomWidth) / 2;
+      const roadTopX = (w - roadTopWidth) / 2;
 
-      // Asphalt Surface
-      ctx.fillStyle = config.weather === 'rain' ? '#0b0f19' : '#181e2b';
-      ctx.fillRect(roadX, 0, roadWidth, h);
+      // Draw Perspective Asphalt Polygon
+      ctx.fillStyle = config.weather === 'rain' ? '#0b0f19' : '#141a29';
+      ctx.beginPath();
+      ctx.moveTo(roadTopX, horizonY);
+      ctx.lineTo(roadTopX + roadTopWidth, horizonY);
+      ctx.lineTo(roadBottomX + roadBottomWidth, h);
+      ctx.lineTo(roadBottomX, h);
+      ctx.closePath();
+      ctx.fill();
 
-      // Outer Road Curb / Shoulders
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(roadX - 4, 0, 4, h); // Left shoulder line
-      ctx.fillRect(roadX + roadWidth, 0, 4, h); // Right shoulder line
+      // Outer Curb / Shoulder Stripes
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = is3D ? 3.5 : 4;
+      ctx.beginPath();
+      ctx.moveTo(roadTopX, horizonY);
+      ctx.lineTo(roadBottomX, h);
+      ctx.moveTo(roadTopX + roadTopWidth, horizonY);
+      ctx.lineTo(roadBottomX + roadBottomWidth, h);
+      ctx.stroke();
 
-      // Animated Scrolling Dashed Lane Dividers
-      const scrollOffset = (s.carDist * 20) % 40;
-      ctx.strokeStyle = '#ffffff';
+      // Coordinate Transform: World distance to Canvas (Y & X scale)
+      const carScreenY = h * 0.74;
+      const pixelsPerMeter = is3D ? 3.4 : 3.6;
+
+      const worldToScreen = (dist: number, visualLane: number) => {
+        const rawY = carScreenY - (dist - s.carDist) * pixelsPerMeter;
+        if (!is3D) {
+          const lW = roadBottomWidth / 3;
+          return {
+            x: roadBottomX + lW * (visualLane + 0.5),
+            y: rawY,
+            scale: 1
+          };
+        }
+        // Perspective Depth factor (t: 0 at horizon, 1 at bottom)
+        const t = Math.max(0.08, Math.min(1.4, (rawY - horizonY) / (h - horizonY)));
+        const curRoadW = roadTopWidth + (roadBottomWidth - roadTopWidth) * t;
+        const curRoadX = roadTopX + (roadBottomX - roadTopX) * t;
+        const curLaneW = curRoadW / 3;
+        const curX = curRoadX + curLaneW * (visualLane + 0.5);
+        return {
+          x: curX,
+          y: rawY,
+          scale: Math.max(0.45, Math.min(1.3, t * 1.15))
+        };
+      };
+
+      // Draw Scrolling Lane Dividers
+      const scrollOffset = (s.carDist * 22) % 40;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
       ctx.lineWidth = 2.5;
       ctx.setLineDash([16, 20]);
       ctx.lineDashOffset = -scrollOffset;
 
-      // Lane Line 1 (between 0 and 1)
+      // Divider 1 (Left / Center)
       ctx.beginPath();
-      ctx.moveTo(roadX + laneWidth, -40);
-      ctx.lineTo(roadX + laneWidth, h + 40);
+      ctx.moveTo(roadTopX + roadTopWidth / 3, horizonY);
+      ctx.lineTo(roadBottomX + roadBottomWidth / 3, h);
       ctx.stroke();
 
-      // Lane Line 2 (between 1 and 2)
+      // Divider 2 (Center / Right)
       ctx.beginPath();
-      ctx.moveTo(roadX + laneWidth * 2, -40);
-      ctx.lineTo(roadX + laneWidth * 2, h + 40);
+      ctx.moveTo(roadTopX + (roadTopWidth / 3) * 2, horizonY);
+      ctx.lineTo(roadBottomX + (roadBottomWidth / 3) * 2, h);
       ctx.stroke();
-      ctx.setLineDash([]); // Reset line dash
+      ctx.setLineDash([]);
 
-      // Coordinate Transform: World distance to Canvas Y
-      // Car is anchored at 72% of canvas height (viewMode === 'driver')
-      const carScreenY = h * 0.72;
-      const pixelsPerMeter = 3.6;
-
-      const worldToScreenY = (dist: number) => {
-        return carScreenY - (dist - s.carDist) * pixelsPerMeter;
-      };
-
-      // Draw Cantilever Overhead Signals and Stop Lines
+      // Draw Signals and Stop Lines
       for (const sig of config.signals) {
-        const sigY = worldToScreenY(sig.dist);
-        if (sigY < -80 || sigY > h + 100) continue;
+        const pos = worldToScreen(sig.dist, 1);
+        if (pos.y < horizonY - 40 || pos.y > h + 100) continue;
 
         const cyclePhase = (s.simTime + (sig.dist * 0.05)) % sig.cycle;
         const isGreen = cyclePhase < sig.greenSec;
         const isYellow = !isGreen && cyclePhase < sig.greenSec + 4;
         const isRed = !isGreen && !isYellow;
 
-        // Stop Line Striping across Road
+        // Perspective Stop Line Striping across Road
+        const curRoadW = is3D ? roadTopWidth + (roadBottomWidth - roadTopWidth) * ((pos.y - horizonY) / (h - horizonY)) : roadBottomWidth;
+        const curRoadX = is3D ? roadTopX + (roadBottomX - roadTopX) * ((pos.y - horizonY) / (h - horizonY)) : roadBottomX;
+
         ctx.fillStyle = isRed ? '#ef4444' : '#ffffff';
-        ctx.fillRect(roadX, sigY + 8, roadWidth, 6);
+        ctx.fillRect(curRoadX, pos.y + 6, curRoadW, 6 * pos.scale);
 
-        // Stop Line Label text
-        ctx.fillStyle = isRed ? '#fca5a5' : '#cbd5e1';
-        ctx.font = 'bold 9px JetBrains Mono, monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(`STOP LINE — ${sig.name.toUpperCase()}`, roadX + 8, sigY + 22);
+        // AI Detection Ray Vector & Stop Line Bounding Box
+        if (showAiVision) {
+          ctx.strokeStyle = isRed ? '#ef4444' : '#10b981';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(worldToScreen(s.carDist, s.carVisualX).x, carScreenY);
+          ctx.lineTo(pos.x, pos.y);
+          ctx.stroke();
 
-        // Overhead Gantries Pole Left
-        ctx.fillStyle = '#475569';
-        ctx.fillRect(roadX - 22, sigY - 26, 18, 8);
-        ctx.fillRect(roadX - 20, sigY - 26, 4, 30);
+          // Reticle tag
+          ctx.fillStyle = isRed ? 'rgba(239, 68, 68, 0.9)' : 'rgba(16, 185, 129, 0.9)';
+          ctx.beginPath();
+          ctx.roundRect(curRoadX + 6, pos.y - 20 * pos.scale, 160 * pos.scale, 16 * pos.scale, 4);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = `bold ${Math.round(9 * pos.scale)}px JetBrains Mono, monospace`;
+          ctx.textAlign = 'left';
+          ctx.fillText(`SPaT SIGNAL • ${isRed ? 'RED' : isGreen ? 'GREEN' : 'AMBER'} 0.99 [${Math.round(sig.dist - s.carDist)}m]`, curRoadX + 10, pos.y - 8 * pos.scale);
+        }
 
-        // 3-Color Signal Head
+        // Overhead Signal Cantilever Head
         ctx.fillStyle = '#0a0e17';
         ctx.beginPath();
-        ctx.roundRect(roadX - 44, sigY - 32, 22, 54, 4);
+        ctx.roundRect(curRoadX - 35 * pos.scale, pos.y - 32 * pos.scale, 24 * pos.scale, 56 * pos.scale, 4);
         ctx.fill();
         ctx.strokeStyle = '#64748b';
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Red Lamp
+        // Lamps
         ctx.fillStyle = isRed ? '#ef4444' : '#450a0a';
         ctx.beginPath();
-        ctx.arc(roadX - 33, sigY - 20, 5, 0, Math.PI * 2);
+        ctx.arc(curRoadX - 23 * pos.scale, pos.y - 20 * pos.scale, 5 * pos.scale, 0, Math.PI * 2);
         ctx.fill();
         if (isRed) {
           ctx.shadowColor = '#ef4444';
-          ctx.shadowBlur = 12;
+          ctx.shadowBlur = 14;
           ctx.fill();
           ctx.shadowBlur = 0;
         }
 
-        // Yellow Lamp
         ctx.fillStyle = isYellow ? '#eab308' : '#422006';
         ctx.beginPath();
-        ctx.arc(roadX - 33, sigY - 5, 5, 0, Math.PI * 2);
+        ctx.arc(curRoadX - 23 * pos.scale, pos.y - 4 * pos.scale, 5 * pos.scale, 0, Math.PI * 2);
         ctx.fill();
 
-        // Green Lamp
         ctx.fillStyle = isGreen ? '#10b981' : '#022c22';
         ctx.beginPath();
-        ctx.arc(roadX - 33, sigY + 10, 5, 0, Math.PI * 2);
+        ctx.arc(curRoadX - 23 * pos.scale, pos.y + 12 * pos.scale, 5 * pos.scale, 0, Math.PI * 2);
         ctx.fill();
         if (isGreen) {
           ctx.shadowColor = '#10b981';
-          ctx.shadowBlur = 12;
+          ctx.shadowBlur = 14;
           ctx.fill();
           ctx.shadowBlur = 0;
         }
       }
 
-      // Draw Zone Boundary Signs on Shoulder
+      // Draw Zone Speed Limit Signs
       for (const zone of config.zones) {
-        const zoneY = worldToScreenY(zone.start);
-        if (zoneY > -60 && zoneY < h + 60) {
-          // Circular Speed Limit Sign
+        const pos = worldToScreen(zone.start, 2.5);
+        if (pos.y > horizonY && pos.y < h + 50) {
           ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(roadX + roadWidth + 24, zoneY, 14, 0, Math.PI * 2);
+          ctx.arc(pos.x + 16, pos.y, 14 * pos.scale, 0, Math.PI * 2);
           ctx.fill();
           ctx.strokeStyle = '#dc2626';
-          ctx.lineWidth = 3;
+          ctx.lineWidth = 3 * pos.scale;
           ctx.stroke();
 
           ctx.fillStyle = '#0f172a';
-          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.font = `bold ${Math.round(11 * pos.scale)}px Inter, sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(`${zone.limit}`, roadX + roadWidth + 24, zoneY);
+          ctx.fillText(`${zone.limit}`, pos.x + 16, pos.y);
+
+          // AI Vision Tag
+          if (showAiVision) {
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.85)';
+            ctx.beginPath();
+            ctx.roundRect(pos.x - 30, pos.y - 28 * pos.scale, 85 * pos.scale, 14 * pos.scale, 3);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.round(8 * pos.scale)}px JetBrains Mono, monospace`;
+            ctx.fillText(`IRC:67 0.96`, pos.x + 12, pos.y - 20 * pos.scale);
+          }
         }
       }
 
-      // Helper to Render Detailed Vehicle
+      // Helper to Render Detailed Realistic Vehicle with AI Bounding Box
       const renderVehicleSprite = (
         x: number, 
         y: number, 
-        w: number, 
-        l: number, 
+        baseW: number, 
+        baseL: number, 
         color: string, 
+        scale = 1,
         isAmbulance = false, 
         isPlayer = false,
-        brakeActive = false
+        brakeActive = false,
+        label = ''
       ) => {
+        const w = baseW * scale;
+        const l = baseL * scale;
+
         ctx.save();
         ctx.translate(x, y);
 
+        // Steering Tilt in 3D Chase mode
+        if (isPlayer && is3D && sim.current.steeringAngle !== 0) {
+          ctx.rotate((sim.current.steeringAngle * Math.PI) / 180);
+        }
+
         // Vehicle Shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.beginPath();
-        ctx.roundRect(-w / 2 - 2, -l / 2 + 3, w + 4, l + 4, 8);
+        ctx.roundRect(-w / 2 - 2, -l / 2 + 4, w + 4, l + 4, 8 * scale);
         ctx.fill();
 
         // Main Car Body
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.roundRect(-w / 2, -l / 2, w, l, 6);
+        ctx.roundRect(-w / 2, -l / 2, w, l, 6 * scale);
         ctx.fill();
         ctx.strokeStyle = isPlayer ? '#34d399' : 'rgba(255,255,255,0.2)';
         ctx.lineWidth = isPlayer ? 2 : 1;
         ctx.stroke();
 
-        // Windshield (Front & Rear Glass)
+        // Windshields
         ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-w / 2 + 3, -l / 2 + 10, w - 6, 10); // Front windshield
-        ctx.fillRect(-w / 2 + 4, l / 2 - 14, w - 8, 7);   // Rear windshield
+        ctx.fillRect(-w / 2 + 3 * scale, -l / 2 + 10 * scale, w - 6 * scale, 10 * scale);
+        ctx.fillRect(-w / 2 + 4 * scale, l / 2 - 14 * scale, w - 8 * scale, 7 * scale);
 
-        // Headlights (Beaming Forward)
+        // Headlight Beams
         if (config.weather === 'night' || config.weather === 'rain' || isPlayer) {
-          const grad = ctx.createLinearGradient(0, -l / 2, 0, -l / 2 - 90);
-          grad.addColorStop(0, 'rgba(254, 240, 138, 0.35)');
+          const grad = ctx.createLinearGradient(0, -l / 2, 0, -l / 2 - 100 * scale);
+          grad.addColorStop(0, 'rgba(254, 240, 138, 0.45)');
           grad.addColorStop(1, 'rgba(254, 240, 138, 0)');
           ctx.fillStyle = grad;
           ctx.beginPath();
           ctx.moveTo(-w / 2 + 2, -l / 2);
-          ctx.lineTo(-w / 2 - 16, -l / 2 - 90);
-          ctx.lineTo(w / 2 + 16, -l / 2 - 90);
+          ctx.lineTo(-w / 2 - 22 * scale, -l / 2 - 100 * scale);
+          ctx.lineTo(w / 2 + 22 * scale, -l / 2 - 100 * scale);
           ctx.lineTo(w / 2 - 2, -l / 2);
           ctx.fill();
         }
 
-        // Glowing Brake Lights (when decelerating/braking)
+        // Brake Lights
         if (brakeActive || (isPlayer && (s.isBraking || s.isHandbrake))) {
           ctx.fillStyle = '#ef4444';
           ctx.shadowColor = '#ef4444';
-          ctx.shadowBlur = 14;
-          ctx.fillRect(-w / 2 + 2, l / 2 - 3, 6, 3);
-          ctx.fillRect(w / 2 - 8, l / 2 - 3, 6, 3);
+          ctx.shadowBlur = 16 * scale;
+          ctx.fillRect(-w / 2 + 2 * scale, l / 2 - 4 * scale, 7 * scale, 4 * scale);
+          ctx.fillRect(w / 2 - 9 * scale, l / 2 - 4 * scale, 7 * scale, 4 * scale);
           ctx.shadowBlur = 0;
         } else {
           ctx.fillStyle = '#991b1b';
-          ctx.fillRect(-w / 2 + 2, l / 2 - 3, 5, 2.5);
-          ctx.fillRect(w / 2 - 7, l / 2 - 3, 5, 2.5);
+          ctx.fillRect(-w / 2 + 2 * scale, l / 2 - 3 * scale, 5 * scale, 2.5 * scale);
+          ctx.fillRect(w / 2 - 7 * scale, l / 2 - 3 * scale, 5 * scale, 2.5 * scale);
         }
 
-        // Ambulance Insignia & Flashing Siren Bar
+        // Ambulance Strobe & Cross
         if (isAmbulance) {
-          // Red Cross on Roof
           ctx.fillStyle = '#dc2626';
-          ctx.fillRect(-2, -4, 4, 12);
-          ctx.fillRect(-6, 0, 12, 4);
+          ctx.fillRect(-2 * scale, -5 * scale, 4 * scale, 12 * scale);
+          ctx.fillRect(-6 * scale, -1 * scale, 12 * scale, 4 * scale);
 
-          // Alternating Strobe Siren Bar
           const flash = Math.floor(s.simTime * 8) % 2 === 0;
           ctx.fillStyle = flash ? '#ef4444' : '#2563eb';
           ctx.shadowColor = flash ? '#ef4444' : '#3b82f6';
-          ctx.shadowBlur = 15;
-          ctx.fillRect(-w / 2 + 4, -l / 2 + 2, w - 8, 5);
+          ctx.shadowBlur = 20 * scale;
+          ctx.fillRect(-w / 2 + 4 * scale, -l / 2 + 2 * scale, w - 8 * scale, 5 * scale);
           ctx.shadowBlur = 0;
 
-          // V2X Pulse Rings around Ambulance
-          ctx.strokeStyle = flash ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)';
-          ctx.lineWidth = 1.5;
+          // Radial Pulse Rings
+          ctx.strokeStyle = flash ? 'rgba(239, 68, 68, 0.45)' : 'rgba(59, 130, 246, 0.45)';
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(0, 0, w + 12, 0, Math.PI * 2);
+          ctx.arc(0, 0, w + 14 * scale, 0, Math.PI * 2);
           ctx.stroke();
         }
 
-        // Player Tag Overhead
-        if (isPlayer) {
-          ctx.fillStyle = '#10b981';
+        // AI Vision Bounding Box Overlay
+        if (showAiVision) {
+          const pad = 4 * scale;
+          ctx.strokeStyle = isAmbulance ? '#ef4444' : isPlayer ? '#10b981' : '#06b6d4';
+          ctx.lineWidth = 1.5;
+
+          // Corner brackets
+          const cl = 6 * scale;
           ctx.beginPath();
-          ctx.roundRect(-22, l / 2 + 6, 44, 14, 4);
+          // Top-Left
+          ctx.moveTo(-w / 2 - pad, -l / 2 - pad + cl);
+          ctx.lineTo(-w / 2 - pad, -l / 2 - pad);
+          ctx.lineTo(-w / 2 - pad + cl, -l / 2 - pad);
+          // Top-Right
+          ctx.moveTo(w / 2 + pad - cl, -l / 2 - pad);
+          ctx.lineTo(w / 2 + pad, -l / 2 - pad);
+          ctx.lineTo(w / 2 + pad, -l / 2 - pad + cl);
+          // Bottom-Right
+          ctx.moveTo(w / 2 + pad, l / 2 + pad - cl);
+          ctx.lineTo(w / 2 + pad, l / 2 + pad);
+          ctx.lineTo(w / 2 + pad - cl, l / 2 + pad);
+          // Bottom-Left
+          ctx.moveTo(-w / 2 - pad + cl, l / 2 + pad);
+          ctx.lineTo(-w / 2 - pad, l / 2 + pad);
+          ctx.lineTo(-w / 2 - pad, l / 2 + pad - cl);
+          ctx.stroke();
+
+          // Floating Target Classification Tag
+          ctx.fillStyle = isAmbulance ? 'rgba(239, 68, 68, 0.9)' : isPlayer ? 'rgba(16, 185, 129, 0.9)' : 'rgba(6, 182, 212, 0.9)';
+          ctx.beginPath();
+          ctx.roundRect(-w / 2 - pad, -l / 2 - pad - 16 * scale, 95 * scale, 14 * scale, 3);
           ctx.fill();
+
           ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 8px JetBrains Mono, monospace';
-          ctx.textAlign = 'center';
+          ctx.font = `bold ${Math.round(8 * scale)}px JetBrains Mono, monospace`;
+          ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText('YOU • EV', 0, l / 2 + 13);
+          ctx.fillText(label || (isPlayer ? 'EGO TS 09 EV 4412' : isAmbulance ? '108 AMB • PRIORITY' : 'VEHICLE 0.98'), -w / 2 - pad + 3 * scale, -l / 2 - pad - 9 * scale);
         }
 
         ctx.restore();
@@ -854,42 +1031,42 @@ export const LiveExperienceStudio: React.FC<Props> = ({
 
       // Draw AI Traffic Cars
       for (const car of s.traffic) {
-        const cy = worldToScreenY(car.dist);
-        if (cy < -60 || cy > h + 60) continue;
-        const cx = roadX + laneWidth * (car.visualLane + 0.5);
-        renderVehicleSprite(cx, cy, 28, 52, car.color, false, false, false);
+        const pos = worldToScreen(car.dist, car.visualLane);
+        if (pos.y < horizonY - 40 || pos.y > h + 60) continue;
+        renderVehicleSprite(pos.x, pos.y, 28, 52, car.color, pos.scale, false, false, false, `${car.type} • ${car.speed}km/h`);
       }
 
       // Draw 108 Emergency Ambulance
       if (s.ambulanceActive) {
-        const ay = worldToScreenY(s.ambDist);
-        if (ay > -80 && ay < h + 80) {
-          const ax = roadX + laneWidth * (s.ambLane + 0.5);
-          renderVehicleSprite(ax, ay, 32, 60, '#ffffff', true, false, false);
+        const pos = worldToScreen(s.ambDist, s.ambLane);
+        if (pos.y > horizonY - 60 && pos.y < h + 80) {
+          renderVehicleSprite(pos.x, pos.y, 32, 60, '#ffffff', pos.scale, true, false, false, '108 AMBULANCE (EVP)');
         }
       }
 
       // Draw Player Car
-      const playerX = roadX + laneWidth * (s.carVisualX + 0.5);
+      const playerPos = worldToScreen(s.carDist, s.carVisualX);
       renderVehicleSprite(
-        playerX, 
+        playerPos.x, 
         carScreenY, 
         30, 
         56, 
         '#059669', 
+        playerPos.scale, 
         false, 
         true, 
-        s.isBraking || s.isHandbrake
+        s.isBraking || s.isHandbrake,
+        'YOU • TS 09 EV 4412'
       );
 
-      // Rain Weather Overlay Effect
+      // Rain Weather Overlay
       if (config.weather === 'rain') {
-        ctx.strokeStyle = 'rgba(186, 230, 253, 0.2)';
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.22)';
         ctx.lineWidth = 1.2;
         ctx.beginPath();
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 48; i++) {
           const rx = (s.simTime * 900 + i * 47) % w;
-          const ry = (s.simTime * 1400 + i * 83) % h;
+          const ry = (s.simTime * 1400 + i * 83) % (h - horizonY) + horizonY;
           ctx.moveTo(rx, ry);
           ctx.lineTo(rx - 4, ry + 16);
         }
@@ -901,10 +1078,11 @@ export const LiveExperienceStudio: React.FC<Props> = ({
 
     animId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animId);
-  }, [selectedScenario, isAutoPilot, playBeep, playSirenBurst]);
+  }, [selectedScenario, isAutoPilot, cameraPerspective, showAiVision, soundEnabled, playBeep, playSirenBurst, playCameraShutter]);
 
   // Handle Touch / Button Pedals
   const handlePedalDown = (type: 'accel' | 'brake') => {
+    initAudio();
     if (type === 'accel') {
       sim.current.isAccelerating = true;
       sim.current.isBraking = false;
@@ -921,16 +1099,24 @@ export const LiveExperienceStudio: React.FC<Props> = ({
   };
 
   const handleLaneChange = (dir: 'left' | 'right') => {
+    initAudio();
     if (dir === 'left' && sim.current.carLane > 0) {
       sim.current.carLane -= 1;
+      sim.current.steeringAngle = -18;
+      setTurnIndicator('left');
       playBeep(480, 'triangle', 0.08);
+      setTimeout(() => { sim.current.steeringAngle = 0; setTurnIndicator('none'); }, 300);
     } else if (dir === 'right' && sim.current.carLane < 2) {
       sim.current.carLane += 1;
+      sim.current.steeringAngle = 18;
+      setTurnIndicator('right');
       playBeep(480, 'triangle', 0.08);
+      setTimeout(() => { sim.current.steeringAngle = 0; setTurnIndicator('none'); }, 300);
     }
   };
 
   const dispatchAmbulance = () => {
+    initAudio();
     sim.current.ambulanceActive = true;
     sim.current.ambDist = sim.current.carDist - 240;
     sim.current.ambYielded = false;
@@ -940,6 +1126,11 @@ export const LiveExperienceStudio: React.FC<Props> = ({
   return (
     <div className={`space-y-6 ${isEmbedded ? '' : 'py-2'}`}>
       
+      {/* Automated Camera Shutter White Flash (when speed trap fires) */}
+      {cameraFlash && (
+        <div className="fixed inset-0 z-50 bg-white pointer-events-none animate-out fade-out duration-300" />
+      )}
+
       {/* 1. Header & Live Telemetry Ribbon */}
       <div className="bg-[#0A111F] border border-slate-800 rounded-3xl p-5 shadow-2xl text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -955,19 +1146,45 @@ export const LiveExperienceStudio: React.FC<Props> = ({
                   Live Experience — Interactive Driving & V2X Ambulance Simulator
                 </h2>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold animate-pulse">
-                  60 FPS ENGINE
+                  60 FPS PERSPECTIVE ENGINE
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Drive manually with WASD/pedals or activate AI Autopilot • Experience GLOSA green-wave and clear lanes for 108 emergency ambulances.
+                Steer manually with WASD or activate AI Autopilot • Experience GLOSA green-waves, AI object detection, and 108 emergency preemption.
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Perspective Mode 3D / 2D */}
+            <button
+              onClick={() => setCameraPerspective(cameraPerspective === '3d_chase' ? 'top_down' : '3d_chase')}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              title="Toggle 3D Chase Perspective vs 2D Tactical View"
+            >
+              <Navigation className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{cameraPerspective === '3d_chase' ? '3D Chase Cam' : '2D Tactical View'}</span>
+            </button>
+
+            {/* AI Vision Bounding Box Overlay Switch */}
+            <button
+              onClick={() => setShowAiVision(!showAiVision)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                showAiVision 
+                  ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60 shadow-lg shadow-cyan-500/20' 
+                  : 'bg-slate-800 text-slate-400 border-slate-700'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              <span>{showAiVision ? 'AI Vision: ON' : 'AI Vision: OFF'}</span>
+            </button>
+
             {/* Audio Toggle */}
             <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
+              onClick={() => {
+                initAudio();
+                setSoundEnabled(!soundEnabled);
+              }}
               className={`p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                 soundEnabled 
                   ? 'bg-slate-800 text-emerald-400 border-slate-700 hover:bg-slate-750' 
@@ -980,7 +1197,10 @@ export const LiveExperienceStudio: React.FC<Props> = ({
 
             {/* AI Autopilot Switch */}
             <button
-              onClick={() => setIsAutoPilot(!isAutoPilot)}
+              onClick={() => {
+                initAudio();
+                setIsAutoPilot(!isAutoPilot);
+              }}
               className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 isAutoPilot 
                   ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20' 
@@ -988,7 +1208,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
               }`}
             >
               <Radio className="w-3.5 h-3.5" />
-              <span>{isAutoPilot ? 'Autopilot: Active' : 'Manual Driving'}</span>
+              <span>{isAutoPilot ? 'Autopilot: ON' : 'Manual Driving'}</span>
             </button>
 
             {/* Emergency Ambulance Dispatch */}
@@ -1151,44 +1371,68 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           </div>
 
           {/* Canvas Interactive Screen */}
-          <div className="relative w-full h-[520px] rounded-3xl overflow-hidden bg-slate-950 border-2 border-slate-800 shadow-2xl flex items-center justify-center">
+          <div className="relative w-full h-[540px] rounded-3xl overflow-hidden bg-slate-950 border-2 border-slate-800 shadow-2xl flex items-center justify-center">
             <canvas
               ref={canvasRef}
               className="w-full h-full cursor-crosshair"
               style={{ touchAction: 'none' }}
             />
 
+            {/* Live Mission Objectives HUD Card (Top-Left of Screen) */}
+            <div className="absolute top-4 left-4 z-20 bg-slate-950/85 backdrop-blur-md border border-slate-800 rounded-2xl p-3 shadow-2xl text-white max-w-xs space-y-1.5 pointer-events-none">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1">
+                <span className="text-[10px] font-mono font-bold uppercase text-slate-400">Mission Objectives</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              </div>
+              <div className="space-y-1 text-[11px] font-mono">
+                <div className={`flex items-center gap-1.5 ${uiStats.objectives.glosaWave ? 'text-emerald-400 font-bold' : 'text-slate-400'}`}>
+                  {uiStats.objectives.glosaWave ? <Check className="w-3 h-3 text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-600" />}
+                  <span>Maintain GLOSA Pace (42 km/h)</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${uiStats.objectives.ambulanceYield ? 'text-emerald-400 font-bold' : 'text-slate-400'}`}>
+                  {uiStats.objectives.ambulanceYield ? <Check className="w-3 h-3 text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-600" />}
+                  <span>Yield Center Lane for Ambulance</span>
+                </div>
+                <div className={`flex items-center gap-1.5 ${uiStats.objectives.signalClear ? 'text-emerald-400 font-bold' : 'text-slate-400'}`}>
+                  {uiStats.objectives.signalClear ? <Check className="w-3 h-3 text-emerald-400" /> : <div className="w-3 h-3 rounded-full border border-slate-600" />}
+                  <span>Obey Stop Lines & Signal Lights</span>
+                </div>
+              </div>
+            </div>
+
             {/* Overlay Ambulance Siren Flasher Banner */}
             {uiStats.ambulanceIncoming && (
-              <div className="absolute top-4 inset-x-6 z-20 bg-red-600/90 backdrop-blur-md text-white border-2 border-white rounded-2xl p-2.5 shadow-2xl flex items-center justify-between px-5 animate-pulse">
+              <div className="absolute top-4 right-4 left-64 z-20 bg-red-600/90 backdrop-blur-md text-white border-2 border-white rounded-2xl p-2.5 shadow-2xl flex items-center justify-between px-4 animate-pulse">
                 <div className="flex items-center gap-2.5">
-                  <Siren className="w-6 h-6 animate-bounce" />
-                  <div>
-                    <span className="text-xs font-black tracking-wider uppercase block">
-                      🚨 EMERGENCY VEHICLE APPROACHING — {uiStats.ambulanceDistBehind}m BEHIND
+                  <Siren className="w-5 h-5 animate-bounce shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-xs font-black tracking-wider uppercase block truncate">
+                      🚨 108 AMBULANCE APPROACHING — {uiStats.ambulanceDistBehind}m BEHIND
                     </span>
-                    <span className="text-[11px] font-mono text-red-100">
-                      V2X Priority Preemption active: Move to Left or Right lane immediately!
+                    <span className="text-[10px] font-mono text-red-100 truncate block">
+                      V2X Priority Preemption: Clear center lane immediately!
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleLaneChange('left')}
-                  className="px-3 py-1 bg-white text-red-700 rounded-lg text-xs font-black uppercase tracking-wider hover:bg-red-50 cursor-pointer shadow-md"
+                  className="px-3 py-1 bg-white text-red-700 rounded-lg text-xs font-black uppercase tracking-wider hover:bg-red-50 cursor-pointer shadow-md shrink-0 ml-2"
                 >
                   Yield Left ◀
                 </button>
               </div>
             )}
 
-            {/* On-Screen Steering & Pedal Controls (Desktop & Mobile Touch) */}
+            {/* On-Screen Steering Wheel & Interactive Touch Pedals */}
             <div className="absolute bottom-4 inset-x-4 z-20 flex items-center justify-between pointer-events-none">
               
-              {/* Left Group: Lane Steer Buttons */}
+              {/* Left Group: Steer Buttons & Blinker */}
               <div className="flex items-center gap-2 pointer-events-auto">
                 <button
                   onClick={() => handleLaneChange('left')}
-                  className="w-14 h-14 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700/80 shadow-2xl flex flex-col items-center justify-center font-bold text-xs active:scale-95 transition-all cursor-pointer backdrop-blur-md"
+                  className={`w-14 h-14 rounded-2xl border shadow-2xl flex flex-col items-center justify-center font-bold text-xs active:scale-95 transition-all cursor-pointer backdrop-blur-md ${
+                    turnIndicator === 'left' ? 'bg-amber-500 text-black border-amber-300 animate-pulse' : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/80'
+                  }`}
                   title="Steer Left (A / Left Arrow)"
                 >
                   <ArrowLeft className="w-5 h-5 text-emerald-400" />
@@ -1196,7 +1440,9 @@ export const LiveExperienceStudio: React.FC<Props> = ({
                 </button>
                 <button
                   onClick={() => handleLaneChange('right')}
-                  className="w-14 h-14 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700/80 shadow-2xl flex flex-col items-center justify-center font-bold text-xs active:scale-95 transition-all cursor-pointer backdrop-blur-md"
+                  className={`w-14 h-14 rounded-2xl border shadow-2xl flex flex-col items-center justify-center font-bold text-xs active:scale-95 transition-all cursor-pointer backdrop-blur-md ${
+                    turnIndicator === 'right' ? 'bg-amber-500 text-black border-amber-300 animate-pulse' : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/80'
+                  }`}
                   title="Steer Right (D / Right Arrow)"
                 >
                   <ArrowRight className="w-5 h-5 text-emerald-400" />
@@ -1204,13 +1450,22 @@ export const LiveExperienceStudio: React.FC<Props> = ({
                 </button>
               </div>
 
-              {/* Center: Live Speed & Lane Badge */}
-              <div className="bg-slate-950/85 backdrop-blur-md border border-slate-800 rounded-2xl px-4 py-2 text-center text-white pointer-events-auto shadow-2xl">
-                <div className="text-[9px] font-mono uppercase tracking-widest text-slate-400">
-                  {selectedScenario.roadName}
+              {/* Center: Interactive Steering Wheel & Telemetry */}
+              <div className="bg-slate-950/85 backdrop-blur-md border border-slate-800 rounded-2xl px-5 py-2 text-center text-white pointer-events-auto shadow-2xl flex items-center gap-3">
+                {/* Rotating Virtual Steering Wheel */}
+                <div 
+                  className="w-10 h-10 rounded-full border-4 border-slate-500 flex items-center justify-center transition-transform duration-200 shadow-inner"
+                  style={{ transform: `rotate(${sim.current.steeringAngle * 1.8}deg)` }}
+                >
+                  <div className="w-4 h-1 bg-slate-400 rounded-full" />
                 </div>
-                <div className="text-sm font-black text-emerald-400">
-                  LANE {uiStats.currentLane === 0 ? '1 (LEFT)' : uiStats.currentLane === 1 ? '2 (CENTER)' : '3 (RIGHT)'}
+                <div>
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-slate-400">
+                    {selectedScenario.roadName}
+                  </div>
+                  <div className="text-sm font-black text-emerald-400">
+                    LANE {uiStats.currentLane === 0 ? '1 (LEFT)' : uiStats.currentLane === 1 ? '2 (CENTER)' : '3 (RIGHT)'}
+                  </div>
                 </div>
               </div>
 
@@ -1310,7 +1565,8 @@ export const LiveExperienceStudio: React.FC<Props> = ({
                 sim.current.challans.map((ch) => (
                   <div
                     key={ch.id}
-                    className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-200 text-xs font-mono space-y-1 animate-in fade-in zoom-in-95 duration-200"
+                    className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-200 text-xs font-mono space-y-1 animate-in fade-in zoom-in-95 duration-200 cursor-pointer hover:bg-rose-900/50 transition-colors"
+                    onClick={() => setActiveChallan(ch)}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white text-[11px]">{ch.id}</span>
@@ -1345,21 +1601,21 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* 3. Violation Popup Modal (Flashes on Red Light / Overspeeding) */}
+      {/* 3. Violation Popup Modal (Flashes with Radar Photographic Snapshot) */}
       {activeChallan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl border-2 border-red-500 shadow-2xl max-w-md w-full p-6 text-slate-900 space-y-4 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl border-2 border-red-500 shadow-2xl max-w-lg w-full p-6 text-slate-900 space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-red-100 border border-red-300 flex items-center justify-center text-red-600 font-black">
-                  <ShieldAlert className="w-7 h-7" />
+                  <Camera className="w-7 h-7" />
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-red-600 font-mono tracking-wider block">
-                    Automated Notice Generated
+                    Statutory Optical Notice Generated
                   </span>
                   <h3 className="text-base font-black text-slate-900 leading-tight">
-                    Traffic Violation Notice (e-Challan)
+                    Speed Radar & Signal e-Challan Dossier
                   </h3>
                 </div>
               </div>
@@ -1369,6 +1625,33 @@ export const LiveExperienceStudio: React.FC<Props> = ({
               >
                 ✕
               </button>
+            </div>
+
+            {/* Radar Camera Evidence Snapshot Card */}
+            <div className="relative w-full h-40 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+              <img
+                src="/images/hitec_corridor.jpg"
+                alt="Radar Speed Gun Snapshot"
+                className="w-full h-full object-cover brightness-75 contrast-125"
+                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+              />
+
+              {/* Radar Targeting Reticle */}
+              <div className="absolute inset-x-12 inset-y-6 border-2 border-red-500/80 rounded-xl flex items-center justify-center pointer-events-none">
+                <Crosshair className="w-10 h-10 text-red-500 animate-spin" style={{ animationDuration: '8s' }} />
+                <span className="absolute top-2 left-2 text-[8px] font-mono text-red-400 bg-black/70 px-1 py-0.5 rounded">
+                  CALIBRATED RADAR: FALCON-HR
+                </span>
+                <span className="absolute bottom-2 right-2 text-[10px] font-mono text-red-300 font-bold bg-black/80 px-1.5 py-0.5 rounded">
+                  RECORDED: {activeChallan.speed} km/h (LIMIT {activeChallan.limit})
+                </span>
+              </div>
+
+              {/* License Plate Banner */}
+              <div className="absolute bottom-2 left-3 bg-white/95 px-2.5 py-1 rounded-md border border-slate-300 shadow-md flex items-center gap-1.5 font-mono text-xs font-black text-slate-900">
+                <span className="w-2 h-2 rounded-full bg-blue-600" />
+                <span>TS 09 EV 4412</span>
+              </div>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-red-50/80 border border-red-200 text-xs font-mono space-y-1.5">
@@ -1381,12 +1664,12 @@ export const LiveExperienceStudio: React.FC<Props> = ({
                 <span className="font-bold text-red-700 text-right">{activeChallan.type}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Legal Clause</span>
+                <span className="text-slate-500">Statutory Section</span>
                 <span className="font-bold text-slate-800 text-[10px]">{activeChallan.section}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-500">Recorded Speed</span>
-                <span className="font-bold text-red-700">{activeChallan.speed} km/h (Limit: {activeChallan.limit})</span>
+                <span className="text-slate-500">Timestamp & Location</span>
+                <span className="font-bold text-slate-800 text-[10px]">{activeChallan.time} • {activeChallan.location}</span>
               </div>
               <div className="flex items-center justify-between border-t border-red-200 pt-1.5">
                 <span className="font-bold text-slate-700">Compounding Fee</span>

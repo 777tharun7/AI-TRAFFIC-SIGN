@@ -543,7 +543,7 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
                   rius={rius}
                   signals={signals}
                   onControl={onControl}
-                  showPipelineDeck={true}
+                  showPipelineDeck={false}
                 />
               </div>
             </div>
