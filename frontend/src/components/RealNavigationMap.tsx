@@ -661,17 +661,26 @@ export const RealNavigationMap: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Right: V2X & AI Vision Status Badges */}
+        {/* Right: V2X, AI Vision & Primary Fullscreen Monitor Button */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-[#00875A]" />
             <span>V2X: Connected</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold">
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-blue-600" />
             <span>AI Vision: 43-Class Active</span>
           </div>
+
+          <button
+            onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer ml-1"
+            title={isFullscreen ? "Exit Fullscreen (ESC)" : "Open Full Screen Map Monitor"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4 text-cyan-200" />}
+            <span className="font-mono font-bold">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}</span>
+          </button>
         </div>
 
       </div>
@@ -814,15 +823,15 @@ export const RealNavigationMap: React.FC<Props> = ({
           {/* Fullscreen Map Monitor Mode Button */}
           <button
             onClick={toggleFullscreen}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all shadow-2xs cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all shadow-xs cursor-pointer ${
               isFullscreen
                 ? 'bg-blue-600 text-white border border-blue-700'
                 : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200'
             }`}
             title={isFullscreen ? "Exit Fullscreen (ESC)" : "Fullscreen Map Monitor"}
           >
-            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5 text-blue-600" />}
-            <span className="hidden sm:inline font-mono text-xs">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}</span>
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5 text-white" /> : <Maximize2 className="w-3.5 h-3.5 text-blue-600" />}
+            <span className="font-mono text-xs">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}</span>
           </button>
 
         </div>
