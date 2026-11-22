@@ -133,18 +133,18 @@ const NavItem: React.FC<NavItemProps> = ({
     onClick={() => onClick(id)}
     aria-label={ariaLabel || label}
     aria-current={active ? 'page' : undefined}
-    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer group ${
+    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
       active
         ? 'bg-gov-navy text-white font-semibold shadow-xs'
         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
     }`}
   >
-    <div className="flex items-center gap-3">
-      <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-      <span>{label}</span>
+    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+      <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
+      <span className="truncate whitespace-nowrap font-medium text-xs tracking-tight">{label}</span>
     </div>
     {badge && (
-      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+      <span className={`shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded font-bold uppercase tracking-tight leading-none ${
         active
           ? 'bg-white/20 text-white'
           : badgeStyle || 'bg-slate-100 text-slate-600'
@@ -239,7 +239,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           id="tharun_demo"
           label="Tharun's Story"
           icon={Compass}
-          badge="[8 SCENES]"
+          badge="8 SCENES"
           badgeStyle="bg-indigo-100 text-indigo-800"
           active={currentView === 'tharun_demo'}
           onClick={handleNav}
@@ -248,7 +248,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           id="road_intelligence"
           label="Live Intelligence"
           icon={Navigation}
-          badge="[4 JUNC]"
+          badge="4 JUNC"
           badgeStyle="bg-slate-100 text-slate-600"
           active={currentView === 'road_intelligence'}
           onClick={handleNav}
@@ -275,7 +275,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           id="traffic_dept"
           label="Corridors & EVP"
           icon={Activity}
-          badge="[3 ACTIVE]"
+          badge="3 ACTIVE"
           badgeStyle="bg-rose-100 text-rose-800"
           active={currentView === 'traffic_dept'}
           onClick={handleNav}
@@ -292,7 +292,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           id="vehicle_registry"
           label="Vehicle Registry"
           icon={Car}
-          badge="[1.4M TS]"
+          badge="1.4M TS"
           badgeStyle="bg-slate-100 text-slate-600"
           active={currentView === 'vehicle_registry'}
           onClick={handleNav}
@@ -302,7 +302,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           id="gvid_registry"
           label="GVID Hardware Hub"
           icon={Cpu}
-          badge="[V2X]"
+          badge="V2X"
           badgeStyle="bg-slate-100 text-slate-600"
           active={currentView === 'gvid_registry'}
           onClick={handleNav}
@@ -310,9 +310,9 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
 
         <NavItem
           id="evidence_workflow"
-          label="Evidence & e-Challan"
+          label="Evidence & Challan"
           icon={FileCheck}
-          badge="[9]"
+          badge="9 CASES"
           badgeStyle="bg-amber-100 text-amber-900"
           active={currentView === 'evidence_workflow'}
           onClick={handleNav}
@@ -327,7 +327,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
 
         <NavItem
           id="citizen_portal"
-          label="Citizen Portal & Pay"
+          label="Citizen Portal"
           icon={User}
           badge="ZERO-FEE"
           badgeStyle="bg-slate-100 text-slate-600"
@@ -337,9 +337,9 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
 
         <NavItem
           id="fleet_operations"
-          label="Public Transit Fleet"
+          label="Public Transit"
           icon={Bus}
-          badge="[42 BUSES]"
+          badge="42 FLEET"
           badgeStyle="bg-amber-100 text-amber-900"
           active={currentView === 'fleet_operations'}
           onClick={handleNav}
@@ -354,7 +354,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
 
         <NavItem
           id="camera_tracker"
-          label="Live Camera & Tracking"
+          label="Camera & Tracking"
           icon={Camera}
           badge="HD 4K"
           badgeStyle="bg-slate-100 text-slate-600"
@@ -366,7 +366,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           id="cvdv"
           label="AI Vision Lab"
           icon={Cpu}
-          badge="[YOLOv8]"
+          badge="YOLOv8"
           badgeStyle="bg-indigo-50 text-indigo-700"
           active={currentView === 'cvdv'}
           onClick={handleNav}
@@ -376,7 +376,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           id="v_riu"
           label="Virtual RIU"
           icon={Radio}
-          badge="[4 NODES]"
+          badge="4 NODES"
           badgeStyle="bg-slate-100 text-slate-600"
           active={currentView === 'v_riu'}
           onClick={handleNav}
@@ -384,9 +384,9 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
 
         <NavItem
           id="decision_engine"
-          label="Decision Engine (Pt 6)"
+          label="Decision Engine"
           icon={Zap}
-          badge="[10ms]"
+          badge="10ms"
           badgeStyle="bg-slate-100 text-slate-600"
           active={currentView === 'decision_engine'}
           onClick={handleNav}
@@ -394,9 +394,9 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
 
         <NavItem
           id="ui_ux_debugger"
-          label="UI/UX Position Debugger"
+          label="UI/UX Debugger"
           icon={Layers}
-          badge="[ISO]"
+          badge="ISO"
           badgeStyle="bg-slate-100 text-slate-600"
           active={currentView === 'ui_ux_debugger'}
           onClick={handleNav}
@@ -506,7 +506,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
     <div className="flex min-h-screen bg-[#F6F8FB] text-[#0F172A] font-sans antialiased">
 
       {/* ================= 1. DESKTOP SIDEBAR ================= */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-[#E2E8F0] flex-col justify-between shrink-0 select-none sticky top-0 h-screen overflow-y-auto">
+      <aside className="hidden lg:flex w-72 bg-white border-r border-[#E2E8F0] flex-col justify-between shrink-0 select-none sticky top-0 h-screen overflow-y-auto">
         <div className="p-5 space-y-4">
 
           {/* Logo / Brand Header */}
