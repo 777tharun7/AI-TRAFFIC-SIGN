@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Home, Navigation, Gauge, Cpu, Radio, Play, 
-  Settings, HelpCircle, BookOpen, Layers, Search, MapPin, 
-  Bell, ChevronDown, Check, Maximize2, Plus, Minus, 
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Home, Navigation, Gauge, Cpu, Radio, Play,
+  Settings, HelpCircle, BookOpen, Layers, Search, MapPin,
+  Bell, ChevronDown, Check, Maximize2, Plus, Minus,
   Compass, ArrowRight, AlertTriangle, Activity, Zap, RefreshCw,
   Camera, Sliders, Car, Crosshair, Sparkles, CheckCircle2,
   LogIn, User, Shield, Menu, X, LogOut, Building2,
@@ -31,8 +31,9 @@ import { GVIDRegistryView } from './GVIDRegistryView';
 import { EvidenceChallanWorkflowView } from './EvidenceChallanWorkflowView';
 import { CitizenPortalView } from './CitizenPortalView';
 import { FleetOperationsView } from './FleetOperationsView';
-import { LoginView, RegisterView, VerifyEmailView, ForgotPasswordView } from './auth/AuthPages';
 import { CookieSettingsView, PrivacyPolicyView, TermsOfServiceView } from './legal/LegalPages';
+import { LoginView, RegisterView, VerifyEmailView, ForgotPasswordView } from './auth/AuthPages';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface UserPersona {
   id: string;
@@ -103,55 +104,8 @@ interface AppShellProps {
   isWsConnected: boolean;
   onControl: (action: string, params?: any) => void;
   onReload: () => void;
+  onNavigate?: (view: string) => void;
 }
-
-export const Toom4WayAppShell: React.FC<AppShellProps> = ({
-  vehicle,
-  rius,
-  signals,
-  routes,
-  isWsConnected,
-  onControl,
-  onReload
-}) => {
-  const [currentView, setCurrentView] = useState<string>('home');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedPersona, setSelectedPersona] = useState<UserPersona>(PERSONAS[0]);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
-  const [istTime, setIstTime] = useState<string>('');
-
-  // Live NTP-synchronized IST Clock (UTC+5:30)
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
-      setIstTime(timeStr);
-    };
-
-    updateTime();
-    const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleNav = (view: string) => {
-    setCurrentView(view);
-    setMobileMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleSelectPersona = (persona: UserPersona) => {
-    setSelectedPersona(persona);
-    setCurrentView(persona.defaultView);
-    setProfileDropdownOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
 interface NavItemProps {
   id: string;
@@ -179,7 +133,7 @@ const NavItem: React.FC<NavItemProps> = ({
     onClick={() => onClick(id)}
     aria-label={ariaLabel || label}
     aria-current={active ? 'page' : undefined}
-    className={`w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
+    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer group ${
       active
         ? 'bg-gov-navy text-white font-semibold shadow-xs'
         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
@@ -200,6 +154,73 @@ const NavItem: React.FC<NavItemProps> = ({
     )}
   </button>
 );
+
+export const Toom4WayAppShell: React.FC<AppShellProps> = ({
+  vehicle,
+  rius,
+  signals,
+  routes,
+  isWsConnected,
+  onControl,
+  onReload,
+  onNavigate
+}) => {
+  const [currentView, setCurrentView] = useState<string>('home');
+  const [selectedPersona, setSelectedPersona] = useState<UserPersona>(PERSONAS[0]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState<boolean>(false);
+  const [istTime, setIstTime] = useState<string>('');
+
+  const { user, logout: authLogout } = useAuth();
+
+  // Live NTP-synchronized IST Clock (UTC+5:30)
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      setIstTime(timeStr);
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Navigation uses the passed onNavigate prop
+  const handleNav = (view: string) => {
+    setCurrentView(view);
+    if (onNavigate) onNavigate(view);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Map user role to default view
+  const userDefaultView = useMemo(() => {
+    if (!user) return 'car_cockpit';
+    switch (user.role) {
+      case 'enforcement_officer': return 'operations_overview';
+      case 'system_admin': return 'traffic_dept';
+      case 'fleet_operator': return 'fleet_operations';
+      case 'ev_operator': return 'traffic_dept';
+      case 'citizen':
+      default: return 'car_cockpit';
+    }
+  }, [user]);
+
+  const handleSelectPersona = (persona: UserPersona) => {
+    setSelectedPersona(persona);
+    setCurrentView(persona.defaultView);
+    if (onNavigate) onNavigate(persona.defaultView);
+    setProfileDropdownOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const renderNavLinks = () => (
     <>
@@ -266,6 +287,7 @@ const NavItem: React.FC<NavItemProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           Vehicles & Enforcement
         </div>
+
         <NavItem
           id="vehicle_registry"
           label="Vehicle Registry"
@@ -275,6 +297,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'vehicle_registry'}
           onClick={handleNav}
         />
+
         <NavItem
           id="gvid_registry"
           label="GVID Hardware Hub"
@@ -284,6 +307,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'gvid_registry'}
           onClick={handleNav}
         />
+
         <NavItem
           id="evidence_workflow"
           label="Evidence & e-Challan"
@@ -300,6 +324,7 @@ const NavItem: React.FC<NavItemProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           Citizen & Transit
         </div>
+
         <NavItem
           id="citizen_portal"
           label="Citizen Portal & Pay"
@@ -309,6 +334,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'citizen_portal'}
           onClick={handleNav}
         />
+
         <NavItem
           id="fleet_operations"
           label="Public Transit Fleet"
@@ -325,6 +351,7 @@ const NavItem: React.FC<NavItemProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           Intelligence Lab
         </div>
+
         <NavItem
           id="camera_tracker"
           label="Live Camera & Tracking"
@@ -334,6 +361,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'camera_tracker'}
           onClick={handleNav}
         />
+
         <NavItem
           id="cvdv"
           label="AI Vision Lab"
@@ -343,6 +371,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'cvdv'}
           onClick={handleNav}
         />
+
         <NavItem
           id="v_riu"
           label="Virtual RIU"
@@ -352,6 +381,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'v_riu'}
           onClick={handleNav}
         />
+
         <NavItem
           id="decision_engine"
           label="Decision Engine (Pt 6)"
@@ -361,6 +391,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'decision_engine'}
           onClick={handleNav}
         />
+
         <NavItem
           id="ui_ux_debugger"
           label="UI/UX Position Debugger"
@@ -377,6 +408,7 @@ const NavItem: React.FC<NavItemProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           Research
         </div>
+
         <NavItem
           id="literature_research"
           label="Literature & Research"
@@ -384,6 +416,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'literature_research'}
           onClick={handleNav}
         />
+
         <NavItem
           id="about_portfolio"
           label="System Architecture"
@@ -398,6 +431,7 @@ const NavItem: React.FC<NavItemProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           System
         </div>
+
         <NavItem
           id="system_states"
           label="Settings & States"
@@ -405,6 +439,7 @@ const NavItem: React.FC<NavItemProps> = ({
           active={currentView === 'system_states'}
           onClick={handleNav}
         />
+
         <NavItem
           id="terms"
           label="Help & Legal"
@@ -467,14 +502,13 @@ const NavItem: React.FC<NavItemProps> = ({
     );
   }
 
-  // ================= 3. AUTHENTICATED OPERATIONAL WORKSPACE (WITH SIDEBAR) =================
   return (
     <div className="flex min-h-screen bg-[#F6F8FB] text-[#0F172A] font-sans antialiased">
-      
+
       {/* ================= 1. DESKTOP SIDEBAR ================= */}
       <aside className="hidden lg:flex w-64 bg-white border-r border-[#E2E8F0] flex-col justify-between shrink-0 select-none sticky top-0 h-screen overflow-y-auto">
         <div className="p-5 space-y-4">
-          
+
           {/* Logo / Brand Header */}
           <div className="cursor-pointer py-1" onClick={() => handleNav('home')}>
             <RoadSenseLogo size="md" />
@@ -494,7 +528,7 @@ const NavItem: React.FC<NavItemProps> = ({
 
       {/* ================= MOBILE MENU DRAWER ================= */}
       {mobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
@@ -507,7 +541,7 @@ const NavItem: React.FC<NavItemProps> = ({
             <div className="cursor-pointer" onClick={() => handleNav('home')}>
               <RoadSenseLogo size="sm" />
             </div>
-            <button 
+            <button
               onClick={() => setMobileMenuOpen(false)}
               className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg cursor-pointer"
             >
@@ -520,9 +554,9 @@ const NavItem: React.FC<NavItemProps> = ({
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Active Role Profile
             </div>
-            <div className="text-xs font-bold text-slate-900">{selectedPersona.name}</div>
-            <div className="text-[10px] text-slate-500">{selectedPersona.role}</div>
-            <div className="text-[10px] font-mono text-[#0A2540] font-semibold mt-1">Badge: {selectedPersona.badge}</div>
+            <div className="text-xs font-bold text-slate-900">Citizen Driver</div>
+            <div className="text-[10px] text-slate-500">Vehicle Owner</div>
+            <div className="text-[10px] font-mono text-[#0A2540] font-semibold mt-1">Badge: TS 09 EV 4412</div>
           </div>
 
           {renderNavLinks()}
@@ -531,10 +565,10 @@ const NavItem: React.FC<NavItemProps> = ({
 
       {/* ================= 2. MAIN APPLICATION WORKSPACE ================= */}
       <div className="flex-1 flex flex-col min-w-0">
-        
+
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-[#E2E8F0] px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-2xs">
-          
+
           {/* Left: Mobile Menu Toggle & Search Bar with Guaranteed Min Width */}
           <div className="flex items-center gap-3 flex-1 max-w-sm sm:max-w-md min-w-[200px]">
             <button
@@ -547,20 +581,20 @@ const NavItem: React.FC<NavItemProps> = ({
 
             <div className="relative w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input 
+              <input
                 type="text"
                 placeholder="Search road event, vehicle, plate, or junction..."
                 aria-label="Search road event, vehicle, plate, or junction"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-gov-navy/20 focus:border-gov-navy text-slate-900 transition-colors"
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-xs rounded-xl border border-[#E2E8F0] focus:outline-none focus:ring-2 focus:ring-gov-navy/20 focus:border-gov-navy text-slate-900 transition-colors"
               />
             </div>
           </div>
 
           {/* Right: Live NTP Clock, Location, Live Status, Profile */}
           <div className="flex items-center gap-3">
-            
+
             {/* Live NTP-Synchronized IST Clock */}
             <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-[#F1F5F9] rounded-xl text-xs font-mono border border-[#E2E8F0] text-slate-700 select-none">
               <Clock className="w-3.5 h-3.5 text-slate-500" />
@@ -610,14 +644,14 @@ const NavItem: React.FC<NavItemProps> = ({
               </span>
             </button>
 
-            {/* Interactive 4-Tier Role Switcher & Profile Dropdown */}
+            {/* Interactive User Profile Dropdown with Logout */}
             <div className="relative">
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2.5 pl-2 border-l border-[#E2E8F0] cursor-pointer select-none text-left rounded-lg p-1 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0A2540]/20"
+                className="flex items-center gap-2.5 pl-2 border-l border-[#E2E8F0] cursor-pointer select-none text-left rounded-lg p-1 hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gov-navy/20"
                 aria-expanded={profileDropdownOpen}
               >
-                <div className={`w-8 h-8 rounded-full ${selectedPersona.badgeColor} font-bold text-xs flex items-center justify-center shadow-xs shrink-0`}>
+                <div className={`w-8 h-8 rounded-full ${selectedPersona.badgeColor || 'bg-gov-navy text-white'} font-bold text-xs flex items-center justify-center shadow-xs shrink-0 text-white`}>
                   {selectedPersona.name.charAt(0)}
                 </div>
                 <div className="hidden sm:block text-left">
@@ -627,81 +661,52 @@ const NavItem: React.FC<NavItemProps> = ({
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
-              {/* Role Switcher Popover Menu */}
+              {/* Profile Dropdown Menu */}
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-96 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl p-3 space-y-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
-                  
-                  {/* Persona Switcher Header */}
+                <div className="absolute right-0 mt-2 w-72 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl p-3 space-y-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+
+                  {/* User Profile Header */}
                   <div className="px-2 py-1.5 border-b border-slate-100 flex items-center justify-between">
                     <div>
                       <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                        Operational Persona & Role
+                        Active Session
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        Switch perspective to change active dashboard & credentials
+                        {selectedPersona.role} • {selectedPersona.jurisdiction}
                       </div>
                     </div>
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-bold">
-                      4 ROLES
-                    </span>
                   </div>
 
-                  {/* 4 Personas List */}
-                  <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                    {PERSONAS.map((p) => {
-                      const isSelected = selectedPersona.id === p.id;
-                      return (
-                        <div
-                          key={p.id}
-                          onClick={() => handleSelectPersona(p)}
-                          className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#0A2540] text-white border-[#0A2540] shadow-sm'
-                              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2.5">
-                              <div className={`w-7 h-7 rounded-lg ${isSelected ? 'bg-white/20 text-white' : p.badgeColor} flex items-center justify-center font-bold text-xs shrink-0 mt-0.5`}>
-                                {p.category === 'Enforcement' && <Shield className="w-4 h-4" />}
-                                {p.category === 'Operations' && <Activity className="w-4 h-4" />}
-                                {p.category === 'Citizen' && <Car className="w-4 h-4" />}
-                                {p.category === 'Transit' && <Bus className="w-4 h-4" />}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-slate-900'}`}>
-                                    {p.name}
-                                  </span>
-                                  <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold ${
-                                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                                  }`}>
-                                    {p.badge}
-                                  </span>
-                                </div>
-                                <div className={`text-[11px] font-medium leading-tight mt-0.5 ${isSelected ? 'text-slate-200' : 'text-slate-600'}`}>
-                                  {p.role}
-                                </div>
-                                {p.vehicle && (
-                                  <div className={`text-[10px] font-medium mt-0.5 ${isSelected ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                                    🚗 Vehicle: {p.vehicle}
-                                  </div>
-                                )}
-                                <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-slate-300' : 'text-slate-400'}`}>
-                                  Jurisdiction: {p.jurisdiction}
-                                </div>
-                              </div>
-                            </div>
-
-                            {isSelected && (
-                              <span className="p-1 rounded-full bg-emerald-500 text-white shrink-0">
-                                <Check className="w-3.5 h-3.5 stroke-3" />
+                  {/* User Info */}
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                    <div className="p-2.5 rounded-xl border transition-all bg-white text-slate-800">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2.5">
+                          <div className={`w-7 h-7 rounded-lg ${selectedPersona.badgeColor || 'bg-gov-navy text-white'} flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 text-white`}>
+                            <Shield className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold leading-tight text-slate-900">
+                                {selectedPersona.name}
                               </span>
-                            )}
+                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded font-semibold bg-emerald-100 text-emerald-800 uppercase">
+                                {selectedPersona.category}
+                              </span>
+                            </div>
+                            <div className="text-[11px] font-medium leading-tight mt-0.5 text-slate-600">
+                              {selectedPersona.role}
+                            </div>
+                            <div className="text-[10px] font-medium mt-0.5 text-emerald-700">
+                              Badge / ID: {selectedPersona.badge}
+                            </div>
+                            <div className="text-[10px] mt-0.5 text-slate-400">
+                              Jurisdiction: {selectedPersona.jurisdiction}
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    </div>
                   </div>
 
                   {/* System Actions Divider */}
@@ -726,10 +731,26 @@ const NavItem: React.FC<NavItemProps> = ({
                       <span>Privacy & Consent Preferences</span>
                       <Shield className="w-3.5 h-3.5 text-slate-400" />
                     </button>
+                    <div className="pt-2 border-t border-slate-100">
+                      <button
+                        onClick={async () => {
+                          if (authLogout) await authLogout();
+                          setProfileDropdownOpen(false);
+                          handleNav('home');
+                        }}
+                        className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-rose-50 text-rose-700 font-medium flex items-center justify-between cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>Sign Out to Official Home</span>
+                        </span>
+                      </button>
+                    </div>
                   </div>
 
                 </div>
               )}
+
             </div>
 
           </div>
@@ -789,7 +810,7 @@ const NavItem: React.FC<NavItemProps> = ({
               onSelectPersona={(personaId) => {
                 const found = PERSONAS.find(p => p.id === personaId);
                 if (found) {
-                  handleSelectPersona(found);
+                  handleNav(found.defaultView);
                 } else {
                   handleNav('operations_overview');
                 }
@@ -927,13 +948,14 @@ const NavItem: React.FC<NavItemProps> = ({
 
           {/* Auth Views */}
           {currentView === 'login' && (
-            <LoginView
-              onNavigate={handleNav}
-              onLoginSuccess={(u) => {
-                const found = PERSONAS.find(p => p.name.includes(u.name)) || PERSONAS[0];
-                handleSelectPersona(found);
-              }}
-            />
+            <div className="p-6 max-w-7xl mx-auto">
+              <LoginView
+                onNavigate={handleNav}
+                onLoginSuccess={(u) => {
+                  handleNav('car_cockpit');
+                }}
+              />
+            </div>
           )}
 
           {currentView === 'register' && (

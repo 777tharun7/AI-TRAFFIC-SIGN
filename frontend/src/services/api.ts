@@ -11,6 +11,85 @@ const host = isBrowser ? window.location.host : 'localhost:5173';
 const API_BASE = '/api';
 const WS_BASE = `${wsProto}//${host}/ws`;
 
+/**
+ * Fetch wrapper with automatic Bearer token injection and 401 session handling.
+ * On 401, clears local session and dispatches a session-expired event.
+ */
+export async function authenticatedFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const token = isBrowser ? localStorage.getItem('roadsense_token') : null;
+  const headers: Record<string, string> = {};
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  if (init?.headers) {
+    const initHeaders = init.headers as Record<string, string> | Headers | string[][];
+    if (initHeaders instanceof Headers) {
+      initHeaders.forEach((value, key) => {
+        headers[key] = value;
+      });
+    } else if (Array.isArray(initHeaders)) {
+      initHeaders.forEach(([k, v]) => {
+        headers[k] = v;
+      });
+    } else {
+      Object.assign(headers, initHeaders);
+    }
+  }
+
+  const res = await fetch(input, { ...init, headers });
+
+  // Auto-logout on 401 Unauthorized
+  if (res.status === 401 && isBrowser) {
+    localStorage.removeItem('roadsense_token');
+    localStorage.removeItem('roadsense_user');
+    window.dispatchEvent(new CustomEvent('roadsense-auth-expired'));
+  }
+
+  return res;
+}
+
+// Auth functions
+export const authApi = {
+  async login(email: string, password: string) {
+    const res = await authenticatedFetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Login failed' }));
+      throw new Error(err.detail || 'Login failed');
+    }
+    return res.json();
+  },
+
+  async logout(token?: string) {
+    try {
+      await authenticatedFetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+      });
+    } catch {
+      // Ignore — always clear local session
+    }
+  },
+
+  async me(token: string) {
+    const res = await authenticatedFetch(`${API_BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      throw new Error('Session invalid');
+    }
+    return res.json();
+  },
+};
+
 export const api = {
   // Vehicle Telemetry
   async getVehicles(): Promise<VehicleState[]> {

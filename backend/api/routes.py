@@ -16,6 +16,7 @@ from typing import Optional
 import time
 
 from ..services.auth_service import auth_service
+from ..core.config import settings
 
 from ..models.schemas import (
     RoadEvent, VirtualRIU, VirtualRIUCreate, TrafficSignal, VehicleState,

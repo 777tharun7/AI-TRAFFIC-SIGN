@@ -1,170 +1,278 @@
+/**
+ * Enterprise Auth Pages for RoadSense AI.
+ * Premium floating glassmorphism UI/UX with social-media-grade animations,
+ * micro-interactions, demo account quick-selector, and real API integration.
+ */
+
 import React, { useState } from 'react';
-import { 
-  ShieldCheck, Mail, Lock, Eye, EyeOff, ArrowRight, 
-  CheckCircle2, AlertCircle, RefreshCw, ChevronLeft, User
+import {
+  Shield, Mail, Lock, Eye, EyeOff, ArrowRight,
+  CheckCircle2, AlertCircle, RefreshCw, ChevronLeft, User,
+  Sparkles, KeyRound, Building2, Car, Compass, ShieldCheck, Zap
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AuthProps {
   onNavigate: (view: string) => void;
   onLoginSuccess?: (user: { name: string; email: string }) => void;
 }
 
+// Preset demo credentials for immediate enterprise evaluation
+const DEMO_CREDENTIALS = [
+  {
+    role: 'Citizen Motorist',
+    email: 'devan.tharun@example.com',
+    password: 'RoadSense@2026',
+    name: 'Devanboina Tharun',
+    badge: 'TS 09 EV 4412',
+    icon: Car,
+    color: 'from-emerald-500 to-teal-600',
+    bgColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  },
+  {
+    role: 'Enforcement Officer',
+    email: 'sridhar.k@ts-police.gov.in',
+    password: 'RoadSense@2026',
+    name: 'Insp. K. Sridhar, TPS',
+    badge: 'TS-HYD-7701',
+    icon: Shield,
+    color: 'from-blue-600 to-indigo-700',
+    bgColor: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  },
+  {
+    role: 'System Administrator',
+    email: 'admin@roadsense-ai.gov.in',
+    password: 'RoadSense@2026',
+    name: 'System Administrator',
+    badge: 'STATE-ADMIN',
+    icon: Building2,
+    color: 'from-purple-600 to-indigo-800',
+    bgColor: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  },
+];
+
 export const LoginView: React.FC<AuthProps> = ({ onNavigate, onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login, isLoading: authLoading, error: authError, clearError } = useAuth();
+
+  const [email, setEmail] = useState('devan.tharun@example.com');
+  const [password, setPassword] = useState('RoadSense@2026');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setLocalError(null);
+    clearError();
 
     if (!email || !email.includes('@')) {
-      setError('Please enter a valid work or academic email address.');
+      setLocalError('Please enter a valid work or academic email address.');
       return;
     }
     if (!password || password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setLocalError('Password must be at least 6 characters.');
       return;
     }
 
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      if (email === 'fail@test.com') {
-        setError('Invalid credentials. Please check your email or password.');
-      } else {
-        if (onLoginSuccess) {
-          onLoginSuccess({ name: email.split('@')[0], email });
-        }
-        onNavigate('home');
+    try {
+      await login(email, password);
+      if (onLoginSuccess) {
+        onLoginSuccess({ name: email.split('@')[0], email });
       }
-    }, 600);
+      // Redirect based on email/role
+      if (email.includes('police') || email.includes('officer')) {
+        onNavigate('operations_overview');
+      } else if (email.includes('admin')) {
+        onNavigate('traffic_dept');
+      } else {
+        onNavigate('car_cockpit');
+      }
+    } catch (err: any) {
+      setLocalError(err.message || 'Authentication failed. Please check credentials.');
+    }
   };
 
+  const fillDemoAccount = (demo: typeof DEMO_CREDENTIALS[0]) => {
+    setEmail(demo.email);
+    setPassword(demo.password);
+    setLocalError(null);
+    clearError();
+  };
+
+  const displayError = localError || authError;
+
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4 bg-[#F6F8FB]">
-      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl shadow-sm p-8 space-y-6">
-        
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#00875A] text-white shadow-sm mb-1">
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 22L9 2M20 22L15 2" stroke="white" strokeWidth="2.5" />
-              <path d="M12 5V8M12 12V15M12 19V22" stroke="white" strokeWidth="2" strokeDasharray="1 2" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Welcome back</h2>
-          <p className="text-xs text-slate-500">Sign in to continue to Toom4Way Predictive Road Intelligence.</p>
-        </div>
+    <div className="min-h-[88vh] flex items-center justify-center p-4 relative overflow-hidden bg-slate-950 text-white font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
-        {/* Error Notification */}
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
+      {/* Dynamic Animated Ambient Mesh Background */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none animate-pulse" style={{ animationDuration: '6s' }} />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none animate-pulse" style={{ animationDuration: '8s' }} />
+      <div className="absolute top-1/2 right-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">Email address</label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#00875A]/20 focus:border-[#00875A] text-slate-900"
-                required
-              />
+      {/* Grid Pattern Overlay */}
+      <div
+        className="absolute inset-0 opacity-10 pointer-events-none"
+        style={{
+          backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)',
+          backgroundSize: '32px 32px'
+        }}
+      />
+
+      <div className="w-full max-w-md relative z-10 space-y-6">
+
+        {/* Floating Glassmorphic Container */}
+        <div className="bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 hover:border-white/20 transition-all duration-300">
+
+          {/* Top Brand & Title */}
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#00875A] to-emerald-400 text-white shadow-lg shadow-emerald-500/20 mb-1 border border-white/20">
+              <Shield className="w-7 h-7 text-white" />
+            </div>
+
+            <div>
+              <span className="text-[10px] uppercase tracking-widest font-mono text-emerald-400 font-bold block mb-1">
+                ENTERPRISE IDENTITY DESK
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                RoadSense AI Log In
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Sign in to access real-time telemetry, V2X feeds &amp; state adjudication.
+              </p>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-700">Password</label>
-              <button
-                type="button"
-                onClick={() => onNavigate('forgot_password')}
-                className="text-xs text-[#00875A] hover:underline font-medium cursor-pointer"
-              >
-                Forgot password?
-              </button>
-            </div>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#00875A]/20 focus:border-[#00875A] text-slate-900"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+          {/* Quick Demo Account Selector Chips */}
+          <div className="space-y-2">
+            <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-slate-400 block text-center">
+              ⚡ Select Demo Role (Click to Auto-Fill)
+            </span>
+            <div className="grid grid-cols-3 gap-1.5">
+              {DEMO_CREDENTIALS.map((demo) => {
+                const Icon = demo.icon;
+                const isSelected = email === demo.email;
+                return (
+                  <button
+                    key={demo.role}
+                    type="button"
+                    onClick={() => fillDemoAccount(demo)}
+                    className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-emerald-500/20 border-emerald-500/60 shadow-sm shadow-emerald-500/20'
+                        : 'bg-white/5 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`} />
+                      {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                    </div>
+                    <div className="mt-1">
+                      <div className="text-[10px] font-bold text-white truncate leading-tight">{demo.role}</div>
+                      <div className="text-[8px] font-mono text-slate-400 truncate mt-0.5">{demo.badge}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div className="flex items-center">
-            <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded border-slate-300 text-[#00875A] focus:ring-[#00875A]"
-              />
-              <span>Remember this device for 30 days</span>
-            </label>
+          {/* Error Banner */}
+          {displayError && (
+            <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs text-rose-300 flex items-start gap-2.5 animate-fadeIn">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div className="flex-1 font-mono">{displayError}</div>
+            </div>
+          )}
+
+          {/* Form Controls */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">Work or Official Email</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-white/15 focus:border-emerald-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 transition-all font-mono"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-300">Password</label>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('forgot_password')}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline font-medium cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950/80 border border-white/15 focus:border-emerald-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 transition-all font-mono"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/50"
+                />
+                <span>Remember session for 24h</span>
+              </label>
+              <span className="text-[10px] font-mono text-emerald-400/80">JWT HS256 Encrypted</span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full py-3 bg-gradient-to-r from-[#00875A] to-emerald-500 hover:from-[#00744E] hover:to-emerald-600 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-98 tracking-wide uppercase"
+            >
+              {authLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Authenticating JWT...</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign In to Platform</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Bottom Security Footer */}
+          <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-slate-400">
+            <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+              <ShieldCheck className="w-3 h-3" /> DPDP Act 2023 Compliant
+            </span>
+            <span>Telangana ITMS v2.4</span>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="relative flex items-center justify-center">
-          <div className="border-t border-slate-200 w-full" />
-          <span className="bg-white px-3 text-[11px] text-slate-400 uppercase font-mono absolute">or</span>
-        </div>
-
-        <button
-          onClick={() => {
-            if (onLoginSuccess) onLoginSuccess({ name: 'Google User', email: 'user@google.com' });
-            onNavigate('home');
-          }}
-          className="w-full py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-xl shadow-2xs flex items-center justify-center gap-2.5 cursor-pointer transition-all"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>Continue with Google</span>
-        </button>
-
-        <div className="text-center text-xs text-slate-500">
-          Don't have an account?{' '}
-          <button
-            onClick={() => onNavigate('register')}
-            className="text-[#00875A] font-bold hover:underline cursor-pointer"
-          >
-            Create account
-          </button>
         </div>
 
       </div>
@@ -177,6 +285,7 @@ export const RegisterView: React.FC<AuthProps> = ({ onNavigate }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('citizen');
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -199,144 +308,144 @@ export const RegisterView: React.FC<AuthProps> = ({ onNavigate }) => {
 
   if (submitted) {
     return (
-      <div className="min-h-[85vh] flex items-center justify-center p-4 bg-[#F6F8FB]">
-        <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl shadow-sm p-8 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-100 text-[#00875A] mx-auto flex items-center justify-center">
-            <CheckCircle2 className="w-7 h-7" />
+      <div className="min-h-[85vh] flex items-center justify-center p-4 bg-slate-950 text-white font-sans">
+        <div className="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 mx-auto flex items-center justify-center shadow-lg">
+            <CheckCircle2 className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">Check your email</h2>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            We sent a verification link to <strong className="text-slate-800">{email}</strong>. Please click the link to activate your Toom4Way account.
+          <h2 className="text-xl font-bold text-white">Account Created Successfully</h2>
+          <p className="text-xs text-slate-400 leading-relaxed font-mono">
+            Verification link dispatched to <strong className="text-white">{email}</strong>. Please complete email validation to enable full platform access.
           </p>
           <div className="pt-2">
             <button
-              onClick={() => onNavigate('verify_email')}
-              className="w-full py-2.5 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer"
+              onClick={() => onNavigate('login')}
+              className="w-full py-3 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-lg cursor-pointer"
             >
-              Simulate Email Verification Link
+              Continue to Login Page
             </button>
           </div>
-          <button
-            onClick={() => onNavigate('login')}
-            className="text-xs text-slate-500 hover:text-slate-800 font-medium"
-          >
-            ← Back to sign in
-          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4 bg-[#F6F8FB]">
-      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl shadow-sm p-8 space-y-6">
-        
+    <div className="min-h-[85vh] flex items-center justify-center p-4 bg-slate-950 text-white font-sans">
+      <div className="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl p-8 space-y-6 shadow-2xl">
+
         <div className="text-center space-y-1.5">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create your Toom4Way account</h2>
-          <p className="text-xs text-slate-500">Access real-time perception, V2X feeds, and predictive decision engines.</p>
+          <h2 className="text-2xl font-black text-white tracking-tight">Create RoadSense AI Account</h2>
+          <p className="text-xs text-slate-400">Access V2X telemetry, road perception &amp; e-services.</p>
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">Full name</label>
+            <label className="text-xs font-semibold text-slate-300">Full Name</label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Dr. Anand Sharma"
+                placeholder="Devanboina Tharun"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00875A]/20 focus:border-[#00875A]"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-white/15 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 font-mono"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">Email address</label>
+            <label className="text-xs font-semibold text-slate-300">Work or Official Email</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
-                placeholder="anand@mobility.org"
+                placeholder="name@domain.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00875A]/20 focus:border-[#00875A]"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-white/15 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 font-mono"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">Password</label>
+            <label className="text-xs font-semibold text-slate-300">Account Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full px-3 py-2.5 bg-slate-950 border border-white/15 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/20 font-mono"
+            >
+              <option value="citizen">Citizen Motorist (Vehicle Owner)</option>
+              <option value="enforcement_officer">Traffic Enforcement Officer</option>
+              <option value="fleet_operator">Transit / Fleet Operator</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-300">Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00875A]/20 focus:border-[#00875A]"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-white/15 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 font-mono"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">Confirm password</label>
+            <label className="text-xs font-semibold text-slate-300">Confirm Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 placeholder="Confirm password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00875A]/20 focus:border-[#00875A]"
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-white/15 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 font-mono"
                 required
               />
             </div>
           </div>
 
-          <div className="flex items-start gap-2 pt-1">
+          <div className="flex items-start gap-2 pt-1 text-xs text-slate-400">
             <input
               type="checkbox"
               id="agree"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-0.5 rounded border-slate-300 text-[#00875A] focus:ring-[#00875A]"
+              className="mt-0.5 rounded border-slate-700 bg-slate-950 text-emerald-500"
             />
-            <label htmlFor="agree" className="text-xs text-slate-600 leading-tight cursor-pointer">
-              I agree to the{' '}
-              <button type="button" onClick={() => onNavigate('terms')} className="text-[#00875A] font-semibold hover:underline">
-                Terms of Service
-              </button>{' '}
-              and{' '}
-              <button type="button" onClick={() => onNavigate('privacy')} className="text-[#00875A] font-semibold hover:underline">
-                Privacy Policy
-              </button>.
+            <label htmlFor="agree" className="leading-tight cursor-pointer">
+              I agree to the Terms of Service and DPDP Act 2023 Privacy Policy.
             </label>
           </div>
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer mt-2"
+            className="w-full py-3 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer mt-2 uppercase tracking-wide"
           >
             Create Account
           </button>
         </form>
 
-        <div className="text-center text-xs text-slate-500">
+        <div className="text-center text-xs text-slate-400">
           Already have an account?{' '}
           <button
             onClick={() => onNavigate('login')}
-            className="text-[#00875A] font-bold hover:underline cursor-pointer"
+            className="text-emerald-400 font-bold hover:underline cursor-pointer"
           >
             Sign in
           </button>
@@ -347,29 +456,25 @@ export const RegisterView: React.FC<AuthProps> = ({ onNavigate }) => {
   );
 };
 
-export const VerifyEmailView: React.FC<AuthProps> = ({ onNavigate }) => {
-  const [verified, setVerified] = useState(true);
-
-  return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4 bg-[#F6F8FB]">
-      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl shadow-sm p-8 text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-emerald-100 text-[#00875A] mx-auto flex items-center justify-center">
-          <CheckCircle2 className="w-7 h-7" />
-        </div>
-        <h2 className="text-xl font-bold text-slate-900">Email verified successfully</h2>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          Your account is verified and ready. You now have full access to Toom4Way road intelligence modules and APIs.
-        </p>
-        <button
-          onClick={() => onNavigate('home')}
-          className="w-full py-2.5 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer"
-        >
-          Continue to Toom4Way
-        </button>
+export const VerifyEmailView: React.FC<AuthProps> = ({ onNavigate }) => (
+  <div className="min-h-[85vh] flex items-center justify-center p-4 bg-slate-950 text-white">
+    <div className="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl p-8 text-center space-y-4">
+      <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center">
+        <CheckCircle2 className="w-7 h-7" />
       </div>
+      <h2 className="text-xl font-bold text-white">Email Verified Successfully</h2>
+      <p className="text-xs text-slate-400 leading-relaxed font-mono">
+        Your account is verified. You now have full access to RoadSense AI telemetry APIs.
+      </p>
+      <button
+        onClick={() => onNavigate('home')}
+        className="w-full py-2.5 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer"
+      >
+        Continue to App
+      </button>
     </div>
-  );
-};
+  </div>
+);
 
 export const ForgotPasswordView: React.FC<AuthProps> = ({ onNavigate }) => {
   const [email, setEmail] = useState('');
@@ -381,54 +486,44 @@ export const ForgotPasswordView: React.FC<AuthProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4 bg-[#F6F8FB]">
-      <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl shadow-sm p-8 space-y-5">
-        
-        <div className="space-y-1">
-          <button
-            onClick={() => onNavigate('login')}
-            className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1 font-medium mb-3"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" /> Back to sign in
-          </button>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Reset your password</h2>
-          <p className="text-xs text-slate-500">Enter your account email and we'll send you instructions to reset your password.</p>
-        </div>
+    <div className="min-h-[85vh] flex items-center justify-center p-4 bg-slate-950 text-white">
+      <div className="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl p-8 space-y-5">
+        <button
+          onClick={() => onNavigate('login')}
+          className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-medium mb-2"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" /> Back to Sign In
+        </button>
+        <h2 className="text-2xl font-black text-white tracking-tight">Reset Password</h2>
+        <p className="text-xs text-slate-400 font-mono">Enter your email for password recovery instructions.</p>
 
         {sent ? (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2 text-center">
-            <CheckCircle2 className="w-6 h-6 text-[#00875A] mx-auto" />
-            <div className="text-xs font-bold text-emerald-900">Reset instructions sent</div>
-            <p className="text-xs text-emerald-700">
-              If an account exists for <strong>{email}</strong>, a password reset link has been dispatched.
-            </p>
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-2 text-center text-xs">
+            <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto" />
+            <div className="font-bold text-emerald-300">Reset instructions dispatched</div>
+            <p className="text-slate-300 font-mono">Check email <strong className="text-white">{email}</strong>.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">Email address</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  placeholder="name@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00875A]/20 focus:border-[#00875A]"
-                  required
-                />
-              </div>
+              <label className="text-xs font-semibold text-slate-300">Email Address</label>
+              <input
+                type="email"
+                placeholder="name@domain.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-950 border border-white/15 rounded-xl text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/20 font-mono"
+                required
+              />
             </div>
-
             <button
               type="submit"
-              className="w-full py-2.5 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer"
+              className="w-full py-2.5 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer uppercase tracking-wide"
             >
               Send Reset Link
             </button>
           </form>
         )}
-
       </div>
     </div>
   );

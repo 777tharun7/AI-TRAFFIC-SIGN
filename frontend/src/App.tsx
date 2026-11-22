@@ -6,6 +6,7 @@ import { SystemErrorModal, SystemErrorInfo } from './components/states/SystemErr
 import { StateInspectorDrawer } from './components/states/StateInspectorDrawer';
 import { api } from './services/api';
 import { VehicleState, VirtualRIU, TrafficSignal } from './types';
+import { AuthProvider } from './contexts/AuthContext';
 
 export const App: React.FC = () => {
   const [vehicle, setVehicle] = useState<VehicleState | null>(null);
@@ -81,52 +82,54 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gov-canvas text-gov-slate font-sans relative antialiased selection:bg-[#00875A] selection:text-white">
-      {/* Skip to Main Content Link for WCAG 2.1 AA Keyboard Accessibility */}
-      <a 
-        href="#main-content" 
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-gov-navy focus:text-white focus:rounded-xl focus:shadow-xl focus:font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400"
-      >
-        Skip to main content
-      </a>
-      {/* 1. Global Network / Offline Alert Banner */}
-      <NetworkStatusBanner
-        isWsConnected={isWsConnected}
-        forcedOffline={forcedOffline}
-        onRetryConnection={loadInitialData}
-      />
+    <AuthProvider>
+      <div className="min-h-screen bg-gov-canvas text-gov-slate font-sans relative antialiased selection:bg-[#00875A] selection:text-white">
+        {/* Skip to Main Content Link for WCAG 2.1 AA Keyboard Accessibility */}
+        <a 
+          href="#main-content" 
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-gov-navy focus:text-white focus:rounded-xl focus:shadow-xl focus:font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400"
+        >
+          Skip to main content
+        </a>
 
-      {/* 2. Global Cookie Consent Modal */}
-      <CookieConsentModal />
+        {/* 1. Global Network / Offline Alert Banner */}
+        <NetworkStatusBanner
+          isWsConnected={isWsConnected}
+          forcedOffline={forcedOffline}
+          onRetryConnection={loadInitialData}
+        />
 
-      {/* 3. Global System Error Handler Modal */}
-      <SystemErrorModal
-        error={activeError}
-        onClose={() => setActiveError(null)}
-      />
+        {/* 2. Global Cookie Consent Modal */}
+        <CookieConsentModal />
 
-      {/* 4. Live System State Inspector & Simulation Drawer (80+ States) */}
-      <StateInspectorDrawer
-        onTriggerError={setActiveError}
-        onToggleForcedOffline={setForcedOffline}
-        onOpenCookieModal={() => setShowCookieModal(true)}
-        onNavigateTab={(tab) => {
-          // Navigation triggered from drawer
-        }}
-        isForcedOffline={forcedOffline}
-      />
+        {/* 3. Global System Error Handler Modal */}
+        <SystemErrorModal
+          error={activeError}
+          onClose={() => setActiveError(null)}
+        />
 
-      {/* 5. Complete Toom4Way Application Framework */}
-      <Toom4WayAppShell
-        vehicle={vehicle}
-        rius={rius}
-        signals={signals}
-        routes={routes}
-        isWsConnected={isWsConnected}
-        onControl={handleControl}
-        onReload={loadInitialData}
-      />
-    </div>
+        {/* 4. Live System State Inspector & Simulation Drawer */}
+        <StateInspectorDrawer
+          onTriggerError={setActiveError}
+          onToggleForcedOffline={setForcedOffline}
+          onOpenCookieModal={() => setShowCookieModal(true)}
+          onNavigateTab={() => {}}
+          isForcedOffline={forcedOffline}
+          visible={false}
+        />
+
+        {/* 5. Complete Toom4Way Application Framework */}
+        <Toom4WayAppShell
+          vehicle={vehicle}
+          rius={rius}
+          signals={signals}
+          routes={routes}
+          isWsConnected={isWsConnected}
+          onControl={handleControl}
+          onReload={loadInitialData}
+        />
+      </div>
+    </AuthProvider>
   );
 };
 
