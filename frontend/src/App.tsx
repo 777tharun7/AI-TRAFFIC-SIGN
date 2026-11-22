@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router';
+import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router';
 
 const Toom4WayAppShell = lazy(() => import('./components/Toom4WayAppShell').then(m => ({ default: m.Toom4WayAppShell })));
 const MasterRoadIntelligenceDashboard = lazy(() => import('./components/MasterRoadIntelligenceDashboard').then(m => ({ default: m.MasterRoadIntelligenceDashboard })));
@@ -146,6 +146,8 @@ const AuthenticatedAppContent: React.FC<{ initialView?: string }> = ({ initialVi
     };
   }, [isAuthenticated, isLoading, navigate, logout]);
 
+  const location = useLocation();
+
   useEffect(() => {
     if (isAuthenticated && !isLoading && user) {
       let defaultView = 'car_cockpit';
@@ -154,11 +156,11 @@ const AuthenticatedAppContent: React.FC<{ initialView?: string }> = ({ initialVi
       } else if (user.role === 'system_admin') {
         defaultView = 'traffic_dept';
       }
-      if (window.location.pathname === '/app' || window.location.pathname === '/login') {
+      if (location.pathname === '/app' || location.pathname === '/login' || location.pathname === '/') {
         navigate('/' + defaultView);
       }
     }
-  }, [isAuthenticated, isLoading, user, navigate]);
+  }, [isAuthenticated, isLoading, user, navigate, location.pathname]);
 
   const [vehicle, setVehicle] = useState<VehicleState | null>(null);
   const [rius, setRius] = useState<VirtualRIU[]>([]);
@@ -281,49 +283,57 @@ const AuthenticatedAppContent: React.FC<{ initialView?: string }> = ({ initialVi
   );
 };
 
+const AppRoutes: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <Routes>
+      {/* Public Official Homepage without any internal sidebar */}
+      <Route path="/" element={<PublicHomeRoute />} />
+      <Route path="/home" element={<PublicHomeRoute />} />
+
+      {/* Authentication & Legal Pages */}
+      <Route path="/login" element={<LoginView onNavigate={(view) => navigate('/' + view)} />} />
+      <Route path="/register" element={<RegisterView onNavigate={(view) => navigate('/' + view)} />} />
+      <Route path="/forgot_password" element={<ForgotPasswordView onNavigate={(view) => navigate('/' + view)} />} />
+      <Route path="/verify_email" element={<VerifyEmailView onNavigate={(view) => navigate('/' + view)} />} />
+      <Route path="/terms" element={<TermsOfServiceView onNavigate={() => navigate('/')} />} />
+      <Route path="/privacy" element={<PrivacyPolicyView onNavigate={() => navigate('/')} />} />
+      <Route path="/cookies" element={<CookieSettingsView onNavigate={() => navigate('/')} />} />
+
+      {/* Protected Main Operational Consoles (with Toom4WayAppShell & Sidebar) */}
+      <Route path="/operations_overview" element={<ProtectedRoute><AuthenticatedAppContent initialView="operations_overview" /></ProtectedRoute>} />
+      <Route path="/live_experience" element={<ProtectedRoute><AuthenticatedAppContent initialView="live_experience" /></ProtectedRoute>} />
+      <Route path="/car_cockpit" element={<ProtectedRoute><AuthenticatedAppContent initialView="car_cockpit" /></ProtectedRoute>} />
+      <Route path="/traffic_dept" element={<ProtectedRoute><AuthenticatedAppContent initialView="traffic_dept" /></ProtectedRoute>} />
+      <Route path="/tharun_demo" element={<ProtectedRoute><AuthenticatedAppContent initialView="tharun_demo" /></ProtectedRoute>} />
+      <Route path="/road_intelligence" element={<ProtectedRoute><AuthenticatedAppContent initialView="road_intelligence" /></ProtectedRoute>} />
+      <Route path="/vehicle_registry" element={<ProtectedRoute><AuthenticatedAppContent initialView="vehicle_registry" /></ProtectedRoute>} />
+      <Route path="/gvid_registry" element={<ProtectedRoute><AuthenticatedAppContent initialView="gvid_registry" /></ProtectedRoute>} />
+      <Route path="/evidence_workflow" element={<ProtectedRoute><AuthenticatedAppContent initialView="evidence_workflow" /></ProtectedRoute>} />
+      <Route path="/citizen_portal" element={<ProtectedRoute><AuthenticatedAppContent initialView="citizen_portal" /></ProtectedRoute>} />
+      <Route path="/fleet_operations" element={<ProtectedRoute><AuthenticatedAppContent initialView="fleet_operations" /></ProtectedRoute>} />
+      <Route path="/camera_tracker" element={<ProtectedRoute><AuthenticatedAppContent initialView="camera_tracker" /></ProtectedRoute>} />
+      <Route path="/cvdv" element={<ProtectedRoute><AuthenticatedAppContent initialView="cvdv" /></ProtectedRoute>} />
+      <Route path="/v_riu" element={<ProtectedRoute><AuthenticatedAppContent initialView="v_riu" /></ProtectedRoute>} />
+      <Route path="/decision_engine" element={<ProtectedRoute><AuthenticatedAppContent initialView="decision_engine" /></ProtectedRoute>} />
+      <Route path="/ui_ux_debugger" element={<ProtectedRoute><AuthenticatedAppContent initialView="ui_ux_debugger" /></ProtectedRoute>} />
+      <Route path="/literature_research" element={<ProtectedRoute><AuthenticatedAppContent initialView="literature_research" /></ProtectedRoute>} />
+      <Route path="/about_portfolio" element={<ProtectedRoute><AuthenticatedAppContent initialView="about_portfolio" /></ProtectedRoute>} />
+      <Route path="/system_states" element={<ProtectedRoute><AuthenticatedAppContent initialView="system_states" /></ProtectedRoute>} />
+      <Route path="/app/*" element={<ProtectedRoute><AuthenticatedAppContent /></ProtectedRoute>} />
+      <Route path="*" element={<ProtectedRoute><AuthenticatedAppContent /></ProtectedRoute>} />
+    </Routes>
+  );
+};
+
 export const App: React.FC = () => {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AuthProvider>
-        <Routes>
-          {/* Public Official Homepage without any internal sidebar */}
-          <Route path="/" element={<PublicHomeRoute />} />
-          <Route path="/home" element={<PublicHomeRoute />} />
-
-          {/* Authentication & Legal Pages */}
-          <Route path="/login" element={<LoginView onNavigate={(view) => { window.location.href = '/' + view; }} />} />
-          <Route path="/register" element={<RegisterView onNavigate={(view) => { window.location.href = '/' + view; }} />} />
-          <Route path="/forgot_password" element={<ForgotPasswordView onNavigate={(view) => { window.location.href = '/' + view; }} />} />
-          <Route path="/verify_email" element={<VerifyEmailView onNavigate={(view) => { window.location.href = '/' + view; }} />} />
-          <Route path="/terms" element={<TermsOfServiceView onNavigate={() => { window.location.href = '/'; }} />} />
-          <Route path="/privacy" element={<PrivacyPolicyView onNavigate={() => { window.location.href = '/'; }} />} />
-          <Route path="/cookies" element={<CookieSettingsView onNavigate={() => { window.location.href = '/'; }} />} />
-
-          {/* Protected Main Operational Consoles (with Toom4WayAppShell & Sidebar) */}
-          <Route path="/operations_overview" element={<ProtectedRoute><AuthenticatedAppContent initialView="operations_overview" /></ProtectedRoute>} />
-          <Route path="/live_experience" element={<ProtectedRoute><AuthenticatedAppContent initialView="live_experience" /></ProtectedRoute>} />
-          <Route path="/car_cockpit" element={<ProtectedRoute><AuthenticatedAppContent initialView="car_cockpit" /></ProtectedRoute>} />
-          <Route path="/traffic_dept" element={<ProtectedRoute><AuthenticatedAppContent initialView="traffic_dept" /></ProtectedRoute>} />
-          <Route path="/tharun_demo" element={<ProtectedRoute><AuthenticatedAppContent initialView="tharun_demo" /></ProtectedRoute>} />
-          <Route path="/road_intelligence" element={<ProtectedRoute><AuthenticatedAppContent initialView="road_intelligence" /></ProtectedRoute>} />
-          <Route path="/vehicle_registry" element={<ProtectedRoute><AuthenticatedAppContent initialView="vehicle_registry" /></ProtectedRoute>} />
-          <Route path="/gvid_registry" element={<ProtectedRoute><AuthenticatedAppContent initialView="gvid_registry" /></ProtectedRoute>} />
-          <Route path="/evidence_workflow" element={<ProtectedRoute><AuthenticatedAppContent initialView="evidence_workflow" /></ProtectedRoute>} />
-          <Route path="/citizen_portal" element={<ProtectedRoute><AuthenticatedAppContent initialView="citizen_portal" /></ProtectedRoute>} />
-          <Route path="/fleet_operations" element={<ProtectedRoute><AuthenticatedAppContent initialView="fleet_operations" /></ProtectedRoute>} />
-          <Route path="/camera_tracker" element={<ProtectedRoute><AuthenticatedAppContent initialView="camera_tracker" /></ProtectedRoute>} />
-          <Route path="/cvdv" element={<ProtectedRoute><AuthenticatedAppContent initialView="cvdv" /></ProtectedRoute>} />
-          <Route path="/v_riu" element={<ProtectedRoute><AuthenticatedAppContent initialView="v_riu" /></ProtectedRoute>} />
-          <Route path="/decision_engine" element={<ProtectedRoute><AuthenticatedAppContent initialView="decision_engine" /></ProtectedRoute>} />
-          <Route path="/ui_ux_debugger" element={<ProtectedRoute><AuthenticatedAppContent initialView="ui_ux_debugger" /></ProtectedRoute>} />
-          <Route path="/literature_research" element={<ProtectedRoute><AuthenticatedAppContent initialView="literature_research" /></ProtectedRoute>} />
-          <Route path="/about_portfolio" element={<ProtectedRoute><AuthenticatedAppContent initialView="about_portfolio" /></ProtectedRoute>} />
-          <Route path="/system_states" element={<ProtectedRoute><AuthenticatedAppContent initialView="system_states" /></ProtectedRoute>} />
-          <Route path="/app/*" element={<ProtectedRoute><AuthenticatedAppContent /></ProtectedRoute>} />
-          <Route path="*" element={<ProtectedRoute><AuthenticatedAppContent /></ProtectedRoute>} />
-        </Routes>
+        <AppRoutes />
       </AuthProvider>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 
