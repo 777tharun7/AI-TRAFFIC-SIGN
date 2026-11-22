@@ -221,10 +221,28 @@ export const TharunDemonstrationStudio: React.FC<TharunDemonstrationStudioProps>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="px-3 py-1 rounded-full text-xs font-black font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-xs">
                     ₹2,000 Fine Waived to ₹0
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('car_cockpit')}
+                    className="px-3 py-1 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+                    title="Launch Automotive Cockpit with MVA Section 194 Emergency Transit mode"
+                  >
+                    <HeartPulse className="w-3.5 h-3.5 text-white animate-pulse" />
+                    <span>Test Cockpit Mode</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigateTab('citizen_portal')}
+                    className="px-3 py-1 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+                    title="Open Citizen Portal Statutory Waiver Desk"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Open Waiver Desk</span>
+                  </button>
                 </div>
               </div>
 
