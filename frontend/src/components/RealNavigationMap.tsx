@@ -451,10 +451,10 @@ export const RealNavigationMap: React.FC<Props> = ({
           }
 
           if (isFollowing && mapRef.current) {
-            mapRef.current.setCenter([curLng, curLat]);
-            if (mapMode === '3D') {
-              mapRef.current.setBearing(vehicle.heading);
-            }
+            mapRef.current.jumpTo({
+              center: [curLng, curLat],
+              ...(mapMode === '3D' ? { bearing: vehicle.heading } : {})
+            });
           }
         }
 

@@ -15,6 +15,38 @@ interface Props {
   isEmbedded?: boolean;
 }
 
+// Cross-browser safe rounded rectangle path generator (Safari / WebKit compatible)
+function drawRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  radius: number = 0
+) {
+  if (w <= 0 || h <= 0) return;
+  const r = Math.max(0, Math.min(radius, Math.abs(w) / 2, Math.abs(h) / 2));
+  if (typeof (ctx as any).roundRect === 'function') {
+    try {
+      (ctx as any).roundRect(x, y, w, h, r);
+      return;
+    } catch {
+      // Fallback below
+    }
+  }
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
 // -------------------------------------------------------------
 // Scenario Definitions
 // -------------------------------------------------------------
@@ -430,19 +462,31 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Handle high-DPI crisp rendering
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
     const loop = (now: number) => {
-      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
       lastTime = now;
 
       const s = sim.current;
       const config = selectedScenario;
+
+      // Dynamic canvas resolution sync (high-DPI retina with zero distortion)
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+
+      if (w <= 10 || h <= 10) {
+        animId = requestAnimationFrame(loop);
+        return;
+      }
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const expectedW = Math.round(w * dpr);
+      const expectedH = Math.round(h * dpr);
+
+      if (canvas.width !== expectedW || canvas.height !== expectedH) {
+        canvas.width = expectedW;
+        canvas.height = expectedH;
+      }
 
       if (s.isRunning) {
         s.simTime += dt;
@@ -521,11 +565,13 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         s.distanceDriven += speedMs * dt;
 
         // Modulate continuous EV motor audio synthesizer pitch
-        if (motorOscRef.current && motorGainRef.current && soundEnabled && audioCtxRef.current) {
-          const targetFreq = 100 + (s.carSpeed * 5.2);
-          motorOscRef.current.frequency.setTargetAtTime(targetFreq, audioCtxRef.current.currentTime, 0.08);
-          const targetGain = s.isAccelerating ? 0.05 : 0.02;
-          motorGainRef.current.gain.setTargetAtTime(targetGain, audioCtxRef.current.currentTime, 0.08);
+        if (motorOscRef.current && motorGainRef.current && soundEnabled && audioCtxRef.current && audioCtxRef.current.state === 'running') {
+          try {
+            const targetFreq = 100 + (s.carSpeed * 5.2);
+            motorOscRef.current.frequency.setTargetAtTime(targetFreq, audioCtxRef.current.currentTime, 0.08);
+            const targetGain = s.isAccelerating ? 0.05 : 0.02;
+            motorGainRef.current.gain.setTargetAtTime(targetGain, audioCtxRef.current.currentTime, 0.08);
+          } catch {}
         }
 
         // Loop corridor seamlessly
@@ -536,6 +582,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
 
         // 5. Lateral Spring Smoothing
         const laneLerpSpeed = 10;
+        if (isNaN(s.carVisualX)) s.carVisualX = s.carLane;
         s.carVisualX += (s.carLane - s.carVisualX) * (laneLerpSpeed * dt);
 
         // 6. Ambulance Logic & Emergency Preemption
@@ -647,64 +694,65 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         }
       }
 
-      // 10. Throttle UI Sync State (10 Hz)
-      uiUpdateTimer += dt;
-      if (uiUpdateTimer > 0.1) {
-        uiUpdateTimer = 0;
-        const currentZone = config.zones.find(z => s.carDist >= z.start && s.carDist <= z.end) || config.zones[0];
-        const activeLimit = currentZone ? currentZone.limit : config.speedLimitKmh;
+      // 10. Throttle UI Sync State (10 Hz) only while running
+      if (s.isRunning) {
+        uiUpdateTimer += dt;
+        if (uiUpdateTimer > 0.1) {
+          uiUpdateTimer = 0;
+          const currentZone = config.zones.find(z => s.carDist >= z.start && s.carDist <= z.end) || config.zones[0];
+          const activeLimit = currentZone ? currentZone.limit : config.speedLimitKmh;
 
-        let curSig = { name: 'Clear Highway', state: 'GREEN', sec: 30, dist: 999 };
-        for (const sig of config.signals) {
-          if (sig.dist > s.carDist - 10) {
-            const cyclePhase = (s.simTime + (sig.dist * 0.05)) % sig.cycle;
-            const isGreen = cyclePhase < sig.greenSec;
-            const isYellow = !isGreen && cyclePhase < sig.greenSec + 4;
-            curSig = {
-              name: sig.name,
-              state: isGreen ? 'GREEN' : isYellow ? 'YELLOW' : 'RED',
-              sec: Math.max(1, Math.round(isGreen ? sig.greenSec - cyclePhase : sig.cycle - cyclePhase)),
-              dist: Math.round(sig.dist - s.carDist)
-            };
-            break;
+          let curSig = { name: 'Clear Highway', state: 'GREEN', sec: 30, dist: 999 };
+          for (const sig of config.signals) {
+            if (sig.dist > s.carDist - 10) {
+              const cyclePhase = (s.simTime + (sig.dist * 0.05)) % sig.cycle;
+              const isGreen = cyclePhase < sig.greenSec;
+              const isYellow = !isGreen && cyclePhase < sig.greenSec + 4;
+              curSig = {
+                name: sig.name,
+                state: isGreen ? 'GREEN' : isYellow ? 'YELLOW' : 'RED',
+                sec: Math.max(1, Math.round(isGreen ? sig.greenSec - cyclePhase : sig.cycle - cyclePhase)),
+                dist: Math.round(sig.dist - s.carDist)
+              };
+              break;
+            }
           }
+
+          const ambBehind = Math.round(s.carDist - s.ambDist);
+          const glosaDelta = Math.abs(s.carSpeed - config.targetGlosaSpeed);
+          const isMatched = glosaDelta <= 4;
+
+          setUiStats({
+            speedKmh: Math.round(s.carSpeed),
+            speedLimit: activeLimit,
+            currentLane: s.carLane,
+            distDriven: Math.round(s.distanceDriven),
+            progressPct: Math.min(100, Math.round((s.carDist / config.totalDistanceM) * 100)),
+            score: Math.max(0, Math.min(100, s.score)),
+            activeZone: currentZone.name,
+            glosaAdvisory: isMatched 
+              ? `GLOSA Synced: Maintain ${config.targetGlosaSpeed} km/h for Green Wave`
+              : `Advisory: Adjust speed to ${config.targetGlosaSpeed} km/h for Green Light`,
+            glosaMatched: isMatched,
+            ambulanceDistBehind: ambBehind,
+            ambulanceIncoming: ambBehind > 0 && ambBehind < 260,
+            upcomingSignal: curSig,
+            challanCount: s.challans.length,
+            objectives: {
+              glosaWave: isMatched,
+              ambulanceYield: s.ambYielded || ambBehind > 300,
+              signalClear: curSig.state === 'GREEN',
+              speedCompliance: s.carSpeed <= activeLimit
+            }
+          });
         }
-
-        const ambBehind = Math.round(s.carDist - s.ambDist);
-        const glosaDelta = Math.abs(s.carSpeed - config.targetGlosaSpeed);
-        const isMatched = glosaDelta <= 4;
-
-        setUiStats({
-          speedKmh: Math.round(s.carSpeed),
-          speedLimit: activeLimit,
-          currentLane: s.carLane,
-          distDriven: Math.round(s.distanceDriven),
-          progressPct: Math.min(100, Math.round((s.carDist / config.totalDistanceM) * 100)),
-          score: Math.max(0, Math.min(100, s.score)),
-          activeZone: currentZone.name,
-          glosaAdvisory: isMatched 
-            ? `GLOSA Synced: Maintain ${config.targetGlosaSpeed} km/h for Green Wave`
-            : `Advisory: Adjust speed to ${config.targetGlosaSpeed} km/h for Green Light`,
-          glosaMatched: isMatched,
-          ambulanceDistBehind: ambBehind,
-          ambulanceIncoming: ambBehind > 0 && ambBehind < 260,
-          upcomingSignal: curSig,
-          challanCount: s.challans.length,
-          objectives: {
-            glosaWave: isMatched,
-            ambulanceYield: s.ambYielded || ambBehind > 300,
-            signalClear: curSig.state === 'GREEN',
-            speedCompliance: s.carSpeed <= activeLimit
-          }
-        });
       }
 
       // =========================================================
       // 11. ADVANCED CANVAS RENDERING ENGINE
       // =========================================================
-      const w = rect.width;
-      const h = rect.height;
-
+      ctx.save();
+      ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
 
       // Sky & Horizon Gradient
@@ -834,7 +882,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           // Reticle tag
           ctx.fillStyle = isRed ? 'rgba(239, 68, 68, 0.9)' : 'rgba(16, 185, 129, 0.9)';
           ctx.beginPath();
-          ctx.roundRect(curRoadX + 6, pos.y - 20 * pos.scale, 160 * pos.scale, 16 * pos.scale, 4);
+          drawRoundRect(ctx, curRoadX + 6, pos.y - 20 * pos.scale, 160 * pos.scale, 16 * pos.scale, 4);
           ctx.fill();
           ctx.fillStyle = '#ffffff';
           ctx.font = `bold ${Math.round(9 * pos.scale)}px JetBrains Mono, monospace`;
@@ -845,7 +893,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         // Overhead Signal Cantilever Head
         ctx.fillStyle = '#0a0e17';
         ctx.beginPath();
-        ctx.roundRect(curRoadX - 35 * pos.scale, pos.y - 32 * pos.scale, 24 * pos.scale, 56 * pos.scale, 4);
+        drawRoundRect(ctx, curRoadX - 35 * pos.scale, pos.y - 32 * pos.scale, 24 * pos.scale, 56 * pos.scale, 4);
         ctx.fill();
         ctx.strokeStyle = '#64748b';
         ctx.lineWidth = 1;
@@ -902,7 +950,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           if (showAiVision) {
             ctx.fillStyle = 'rgba(59, 130, 246, 0.85)';
             ctx.beginPath();
-            ctx.roundRect(pos.x - 30, pos.y - 28 * pos.scale, 85 * pos.scale, 14 * pos.scale, 3);
+            drawRoundRect(ctx, pos.x - 30, pos.y - 28 * pos.scale, 85 * pos.scale, 14 * pos.scale, 3);
             ctx.fill();
             ctx.fillStyle = '#ffffff';
             ctx.font = `bold ${Math.round(8 * pos.scale)}px JetBrains Mono, monospace`;
@@ -938,13 +986,13 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         // Vehicle Shadow
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.beginPath();
-        ctx.roundRect(-w / 2 - 2, -l / 2 + 4, w + 4, l + 4, 8 * scale);
+        drawRoundRect(ctx, -w / 2 - 2, -l / 2 + 4, w + 4, l + 4, 8 * scale);
         ctx.fill();
 
         // Main Car Body
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.roundRect(-w / 2, -l / 2, w, l, 6 * scale);
+        drawRoundRect(ctx, -w / 2, -l / 2, w, l, 6 * scale);
         ctx.fill();
         ctx.strokeStyle = isPlayer ? '#34d399' : 'rgba(255,255,255,0.2)';
         ctx.lineWidth = isPlayer ? 2 : 1;
@@ -1034,7 +1082,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           // Floating Target Classification Tag
           ctx.fillStyle = isAmbulance ? 'rgba(239, 68, 68, 0.9)' : isPlayer ? 'rgba(16, 185, 129, 0.9)' : 'rgba(6, 182, 212, 0.9)';
           ctx.beginPath();
-          ctx.roundRect(-w / 2 - pad, -l / 2 - pad - 16 * scale, 95 * scale, 14 * scale, 3);
+          drawRoundRect(ctx, -w / 2 - pad, -l / 2 - pad - 16 * scale, 95 * scale, 14 * scale, 3);
           ctx.fill();
 
           ctx.fillStyle = '#ffffff';
@@ -1090,6 +1138,9 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         }
         ctx.stroke();
       }
+
+      // Restore isolated transformation state for this frame
+      ctx.restore();
 
       animId = requestAnimationFrame(loop);
     };
