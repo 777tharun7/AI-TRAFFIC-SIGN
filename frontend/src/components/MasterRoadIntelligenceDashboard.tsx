@@ -53,7 +53,7 @@ export const MasterRoadIntelligenceDashboard: React.FC<Props> = ({
               rius={rius}
               signals={signals}
               onControl={onControl}
-              showPipelineDeck={false}
+              showPipelineDeck={true}
             />
           </div>
         </div>

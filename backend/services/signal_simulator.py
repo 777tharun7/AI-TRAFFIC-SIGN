@@ -106,6 +106,66 @@ class TrafficSignalSimulator:
                 "elapsed_in_phase": 15,
                 "state": SignalState.RED,
                 "remaining_time": 20
+            },
+            {
+                "signal_id": "SIG-HITEC-01",
+                "name": "Cyber Towers Junction Signal",
+                "latitude": 17.4502,
+                "longitude": 78.3808,
+                "direction": 225.0,
+                "road_segment_id": "HYD-ROAD-101",
+                "cycle_duration": 60,
+                "red_duration": 30,
+                "yellow_duration": 5,
+                "green_duration": 25,
+                "elapsed_in_phase": 5,
+                "state": SignalState.GREEN,
+                "remaining_time": 20
+            },
+            {
+                "signal_id": "SIG-HITEC-02",
+                "name": "Mindspace Roundabout Signal",
+                "latitude": 17.4450,
+                "longitude": 78.3818,
+                "direction": 210.0,
+                "road_segment_id": "HYD-ROAD-102",
+                "cycle_duration": 60,
+                "red_duration": 35,
+                "yellow_duration": 5,
+                "green_duration": 20,
+                "elapsed_in_phase": 15,
+                "state": SignalState.RED,
+                "remaining_time": 20
+            },
+            {
+                "signal_id": "SIG-HITEC-03",
+                "name": "Inorbit Mall Junction Signal",
+                "latitude": 17.4380,
+                "longitude": 78.3780,
+                "direction": 205.0,
+                "road_segment_id": "HYD-ROAD-104",
+                "cycle_duration": 60,
+                "red_duration": 30,
+                "yellow_duration": 5,
+                "green_duration": 25,
+                "elapsed_in_phase": 10,
+                "state": SignalState.GREEN,
+                "remaining_time": 15
+            },
+            {
+                "signal_id": "SIG-HITEC-04",
+                "name": "Bio-Diversity Junction Signal",
+                "latitude": 17.4325,
+                "longitude": 78.3712,
+                "direction": 215.0,
+                "road_segment_id": "HYD-ROAD-105",
+                "cycle_duration": 60,
+                "red_duration": 30,
+                "yellow_duration": 5,
+                "green_duration": 25,
+                "elapsed_in_phase": 8,
+                "state": SignalState.RED,
+                "remaining_time": 22
             }
         ]
         

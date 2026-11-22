@@ -396,6 +396,7 @@ export const AsItIsMasterDashboard: React.FC<Props> = ({
                 vehicle={vehicle}
                 rius={rius}
                 signals={signals}
+                showPipelineDeck={false}
               />
 
               {/* Map Callout 1: Red Signal 80m ahead (Somajiguda / Tank Bund) */}

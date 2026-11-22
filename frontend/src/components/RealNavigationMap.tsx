@@ -89,7 +89,6 @@ export const RealNavigationMap: React.FC<Props> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [showLayersMenu, setShowLayersMenu] = useState<boolean>(false);
-  const [viewFormat, setViewFormat] = useState<'interactive' | 'schematic'>('interactive');
 
   const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev);
@@ -130,9 +129,9 @@ export const RealNavigationMap: React.FC<Props> = ({
     rius: false
   });
 
-  const [mapStyleType, setMapStyleType] = useState<'voyager' | 'dark' | 'osm' | 'satellite'>('voyager');
+  const [mapStyleType, setMapStyleType] = useState<'voyager' | 'dark' | 'osm' | 'satellite' | 'schematic'>('osm');
 
-  const handleStyleChange = (type: 'voyager' | 'dark' | 'osm' | 'satellite') => {
+  const handleStyleChange = (type: 'voyager' | 'dark' | 'osm' | 'satellite' | 'schematic') => {
     setMapStyleType(type);
     if (!mapRef.current) return;
     const map = mapRef.current;
@@ -152,6 +151,10 @@ export const RealNavigationMap: React.FC<Props> = ({
     } else if (type === 'satellite') {
       tiles = [
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+      ];
+    } else if (type === 'schematic') {
+      tiles = [
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
       ];
     }
 
@@ -176,7 +179,7 @@ export const RealNavigationMap: React.FC<Props> = ({
 
   // Initialize Clean MapLibre 2D Navigation Map
   useEffect(() => {
-    if (!mapContainer.current || mapRef.current || viewFormat === 'schematic') return;
+    if (!mapContainer.current || mapRef.current) return;
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
@@ -322,7 +325,7 @@ export const RealNavigationMap: React.FC<Props> = ({
       map.remove();
       mapRef.current = null;
     };
-  }, [viewFormat]);
+  }, []);
 
   // Dynamically update full corridor route if route changes
   useEffect(() => {
@@ -362,7 +365,7 @@ export const RealNavigationMap: React.FC<Props> = ({
   // Update Dynamic Vehicle Marker
   // Update Dynamic Vehicle Marker with Silky Smooth Interpolation
   useEffect(() => {
-    if (!mapRef.current || !vehicle || viewFormat === 'schematic') return;
+    if (!mapRef.current || !vehicle) return;
     const map = mapRef.current;
     const targetLng = vehicle.longitude;
     const targetLat = vehicle.latitude;
@@ -456,11 +459,11 @@ export const RealNavigationMap: React.FC<Props> = ({
         cancelAnimationFrame(animFrameIdRef.current);
       }
     };
-  }, [vehicle?.latitude, vehicle?.longitude, vehicle?.heading, vehicle?.speed_kmh, isFollowing, mapMode, viewFormat]);
+  }, [vehicle?.latitude, vehicle?.longitude, vehicle?.heading, vehicle?.speed_kmh, isFollowing, mapMode]);
 
   // Update Callouts, Traffic Signals & Road Events
   useEffect(() => {
-    if (!mapRef.current || viewFormat === 'schematic') return;
+    if (!mapRef.current) return;
     const map = mapRef.current;
 
     signalMarkersRef.current.forEach(m => m.remove());
@@ -472,14 +475,26 @@ export const RealNavigationMap: React.FC<Props> = ({
 
     // 1. Render Traffic Signal Poles along Corridor
     if (layers.signals) {
-      const corridorSignals = [
-        { id: 'sig-banjara', name: 'Banjara Hills Junction', lat: 17.4120, lon: 78.4410, state: 'GREEN', remaining: 25 },
-        { id: 'sig-somajiguda', name: 'Somajiguda Raj Bhavan', lat: 17.4220, lon: 78.4550, state: 'RED', remaining: 30 },
-        { id: 'sig-necklace', name: 'Necklace Road Khairatabad', lat: 17.4270, lon: 78.4630, state: 'GREEN', remaining: 18 },
-        { id: 'sig-tankbund', name: 'NTR Gardens / Tank Bund South', lat: 17.4230, lon: 78.4750, state: 'RED', remaining: timeRemaining },
-        { id: 'sig-kavadiguda', name: 'Tank Bund Promenade', lat: 17.4280, lon: 78.4820, state: 'GREEN', remaining: 17 },
-        { id: 'sig-secunderabad', name: 'Secunderabad Paradise', lat: 17.4410, lon: 78.4865, state: 'RED', remaining: 20 }
-      ];
+      const corridorSignals = (signals && signals.length > 0)
+        ? signals.map((s: any) => ({
+            id: s.signal_id || s.id,
+            name: s.name,
+            lat: s.latitude ?? s.lat,
+            lon: s.longitude ?? s.lon,
+            state: s.state,
+            remaining: s.remaining_time ?? s.remaining ?? 15
+          }))
+        : [
+            { id: 'sig-cyber', name: 'Cyber Towers Junction', lat: 17.4502, lon: 78.3808, state: 'GREEN', remaining: 20 },
+            { id: 'sig-mindspace', name: 'Mindspace Roundabout', lat: 17.4450, lon: 78.3818, state: 'RED', remaining: 15 },
+            { id: 'sig-inorbit', name: 'Inorbit Mall Junction', lat: 17.4380, lon: 78.3780, state: 'GREEN', remaining: 25 },
+            { id: 'sig-banjara', name: 'Banjara Hills Junction', lat: 17.4120, lon: 78.4410, state: 'GREEN', remaining: 25 },
+            { id: 'sig-somajiguda', name: 'Somajiguda Raj Bhavan', lat: 17.4220, lon: 78.4550, state: 'RED', remaining: 30 },
+            { id: 'sig-necklace', name: 'Necklace Road Khairatabad', lat: 17.4270, lon: 78.4630, state: 'GREEN', remaining: 18 },
+            { id: 'sig-tankbund', name: 'NTR Gardens / Tank Bund South', lat: 17.4230, lon: 78.4750, state: 'RED', remaining: timeRemaining },
+            { id: 'sig-kavadiguda', name: 'Tank Bund Promenade', lat: 17.4280, lon: 78.4820, state: 'GREEN', remaining: 17 },
+            { id: 'sig-secunderabad', name: 'Secunderabad Paradise', lat: 17.4410, lon: 78.4865, state: 'RED', remaining: 20 }
+          ];
 
       corridorSignals.forEach((sig) => {
         const el = document.createElement('div');
@@ -523,7 +538,75 @@ export const RealNavigationMap: React.FC<Props> = ({
 
     // 2. Render Exact Callout Cards Matching User Reference Screenshot
     if (layers.signs) {
-      const callouts = [
+      const isHitec = !vehicle?.route_id || vehicle?.route_id === 'route_hitec_gachibowli';
+      const callouts = isHitec ? [
+        {
+          id: 'callout-speed-50',
+          lon: 78.3805,
+          lat: 17.4498,
+          html: `
+            <div class="flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg border border-slate-200 cursor-pointer transition-transform hover:scale-105">
+              <div class="w-6 h-6 rounded-full border-2 border-red-600 bg-white flex items-center justify-center font-black text-[10px] text-slate-900">
+                50
+              </div>
+              <div class="text-left">
+                <div class="text-[10px] font-bold text-slate-900 leading-tight">Speed Limit</div>
+                <div class="text-[9px] text-slate-500 font-mono">50 km/h</div>
+              </div>
+            </div>
+          `
+        },
+        {
+          id: 'callout-ped-120',
+          lon: 78.3818,
+          lat: 17.4450,
+          html: `
+            <div class="flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg border border-slate-200 cursor-pointer transition-transform hover:scale-105">
+              <div class="w-6 h-6 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 flex items-center justify-center text-xs">
+                🚶
+              </div>
+              <div class="text-left">
+                <div class="text-[10px] font-bold text-slate-900 leading-tight">Pedestrian Crossing</div>
+                <div class="text-[9px] text-slate-500 font-mono">Mindspace 120m</div>
+              </div>
+            </div>
+          `
+        },
+        {
+          id: 'callout-red-signal',
+          lon: 78.3780,
+          lat: 17.4380,
+          html: `
+            <div class="flex items-center gap-2 bg-red-50/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-xl border-2 border-red-500 cursor-pointer transition-transform hover:scale-105 animate-pulse">
+              <div class="w-4 h-8 bg-black rounded p-0.5 flex flex-col items-center justify-between shrink-0">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-sm shadow-red-500"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-800"></span>
+              </div>
+              <div class="text-left">
+                <div class="text-[10px] font-black text-red-600 leading-tight">Active Signal</div>
+                <div class="text-[9px] text-red-700 font-mono font-bold">Inorbit Junction - ${timeRemaining}s</div>
+              </div>
+            </div>
+          `
+        },
+        {
+          id: 'callout-road-work',
+          lon: 78.3712,
+          lat: 17.4325,
+          html: `
+            <div class="flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg border border-slate-200 cursor-pointer transition-transform hover:scale-105">
+              <div class="w-6 h-6 rounded-lg bg-rose-100 border border-rose-300 text-rose-800 flex items-center justify-center text-xs">
+                ⚠️
+              </div>
+              <div class="text-left">
+                <div class="text-[10px] font-bold text-slate-900 leading-tight">Flyover Work</div>
+                <div class="text-[9px] text-slate-500 font-mono">Bio-Diversity 250m</div>
+              </div>
+            </div>
+          `
+        }
+      ] : [
         {
           id: 'callout-speed-50',
           lon: 78.4520,
@@ -604,7 +687,7 @@ export const RealNavigationMap: React.FC<Props> = ({
         eventMarkersRef.current.push(marker);
       });
     }
-  }, [signals, layers, distanceToEvent, timeRemaining, viewFormat]);
+  }, [signals, layers, distanceToEvent, timeRemaining]);
 
   const handleRecenter = () => {
     if (!mapRef.current || !vehicle) return;
@@ -720,46 +803,46 @@ export const RealNavigationMap: React.FC<Props> = ({
             <span>Follow Vehicle</span>
           </button>
 
-          {/* View Mode: Interactive MapLibre vs High-Res Schematic Map */}
+          {/* Map Style Selector: Street, Dark, OSM, Satellite, Schematic */}
           <div className="p-0.5 rounded-xl bg-slate-200/70 border border-slate-200 flex items-center text-[11px] font-bold">
             <button
-              onClick={() => { setViewFormat('interactive'); handleStyleChange('voyager'); }}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                viewFormat === 'interactive' && mapStyleType === 'voyager' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => handleStyleChange('voyager')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                mapStyleType === 'voyager' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Street
             </button>
             <button
-              onClick={() => { setViewFormat('interactive'); handleStyleChange('dark'); }}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                viewFormat === 'interactive' && mapStyleType === 'dark' ? 'bg-slate-900 text-emerald-400 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => handleStyleChange('dark')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                mapStyleType === 'dark' ? 'bg-slate-900 text-emerald-400 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Dark
             </button>
             <button
-              onClick={() => { setViewFormat('interactive'); handleStyleChange('osm'); }}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                viewFormat === 'interactive' && mapStyleType === 'osm' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => handleStyleChange('osm')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                mapStyleType === 'osm' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               OSM
             </button>
             <button
-              onClick={() => { setViewFormat('interactive'); handleStyleChange('satellite'); }}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                viewFormat === 'interactive' && mapStyleType === 'satellite' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => handleStyleChange('satellite')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                mapStyleType === 'satellite' ? 'bg-white text-blue-600 shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Satellite
             </button>
             <button
-              onClick={() => setViewFormat(viewFormat === 'schematic' ? 'interactive' : 'schematic')}
-              className={`px-2.5 py-1 rounded-lg transition-all ${
-                viewFormat === 'schematic' ? 'bg-[#00875A] text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
+              onClick={() => handleStyleChange('schematic')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                mapStyleType === 'schematic' ? 'bg-[#00875A] text-white shadow-2xs font-extrabold' : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Toggle HD Illustrated Corridor Map"
+              title="Digital Twin Schematic Vector Map"
             >
               Schematic
             </button>
@@ -843,18 +926,7 @@ export const RealNavigationMap: React.FC<Props> = ({
         isFullscreen ? 'flex-1 min-h-0 h-full' : 'h-[480px] min-h-[480px]'
       } bg-slate-100 overflow-hidden`}>
         
-        {viewFormat === 'interactive' ? (
-          <div ref={mapContainer} className="w-full h-full min-h-[480px]" />
-        ) : (
-          /* HD Illustrated Corridor Background Mode */
-          <div className="relative w-full h-full">
-            <img 
-              src="/images/route_map_bg.jpg" 
-              alt="Hyderabad Hussain Sagar Connected Corridor Map" 
-              className="w-full h-full object-cover object-center"
-            />
-          </div>
-        )}
+        <div ref={mapContainer} className="w-full h-full min-h-[480px]" />
 
         {/* Fullscreen Tactical Monitoring HUD */}
         {isFullscreen && (
@@ -1029,6 +1101,7 @@ export const RealNavigationMap: React.FC<Props> = ({
         <div className="p-4 px-6 bg-[#F8FAFC] border-t border-slate-200">
           <LivePerceptionPipelineDeck
             vehicle={vehicle}
+            signals={signals}
             speedKmh={currentSpeed}
             timeRemaining={timeRemaining}
           />
