@@ -190,38 +190,47 @@ const AuthenticatedAppContent: React.FC<{ initialView?: string }> = ({ initialVi
 
   useEffect(() => {
     let ws: WebSocket | null = null;
-    let reconnectTimer: NodeJS.Timeout | null = null;
+    let isUnmounted = false;
+    let lastTelemetryTime = Date.now();
+    let watchdogTimer: NodeJS.Timeout | null = null;
 
     const connectWs = () => {
+      if (isUnmounted) return;
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
       try {
         ws = api.createVehicleWebSocket('VEH-HYD-001', (updatedState) => {
+          if (isUnmounted) return;
+          lastTelemetryTime = Date.now();
           setVehicle(updatedState);
           setIsWsConnected(true);
         });
-        ws.onclose = () => {
-          setIsWsConnected(false);
-          reconnectTimer = setTimeout(connectWs, 2000);
-        };
-        ws.onerror = () => {
-          setIsWsConnected(false);
-        };
       } catch (err) {
-        console.error('WebSocket connection error:', err);
-        setIsWsConnected(false);
-        reconnectTimer = setTimeout(connectWs, 3000);
+        console.warn('WebSocket connection warning:', err);
       }
     };
 
     loadInitialData();
     connectWs();
 
+    // Telemetry Watchdog: If no telemetry received for > 5 seconds, reflect disconnected state
+    watchdogTimer = setInterval(() => {
+      if (isUnmounted) return;
+      if (Date.now() - lastTelemetryTime > 5000) {
+        setIsWsConnected(false);
+      }
+    }, 2000);
+
     const interval = setInterval(() => {
       api.getSignals().then(setSignals).catch(console.error);
     }, 2000);
 
     return () => {
+      isUnmounted = true;
       if (ws) ws.close();
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (watchdogTimer) clearInterval(watchdogTimer);
       clearInterval(interval);
     };
   }, [loadInitialData]);
