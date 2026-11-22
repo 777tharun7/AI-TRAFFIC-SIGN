@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
-import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router';
+import { HashRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router';
+import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 
 const Toom4WayAppShell = lazy(() => import('./components/Toom4WayAppShell').then(m => ({ default: m.Toom4WayAppShell })));
 const MasterRoadIntelligenceDashboard = lazy(() => import('./components/MasterRoadIntelligenceDashboard').then(m => ({ default: m.MasterRoadIntelligenceDashboard })));
@@ -43,19 +44,16 @@ const Loader = () => (
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate('/login');
-    }
-  }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
     return <Loader />;
   }
 
-  return isAuthenticated ? <>{children}</> : null;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 const PublicHomeRoute: React.FC = () => {
@@ -322,7 +320,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/about_portfolio" element={<ProtectedRoute><AuthenticatedAppContent initialView="about_portfolio" /></ProtectedRoute>} />
       <Route path="/system_states" element={<ProtectedRoute><AuthenticatedAppContent initialView="system_states" /></ProtectedRoute>} />
       <Route path="/app/*" element={<ProtectedRoute><AuthenticatedAppContent /></ProtectedRoute>} />
-      <Route path="*" element={<ProtectedRoute><AuthenticatedAppContent /></ProtectedRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
@@ -331,7 +329,9 @@ export const App: React.FC = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <AppRoutes />
+        <GlobalErrorBoundary>
+          <AppRoutes />
+        </GlobalErrorBoundary>
       </AuthProvider>
     </HashRouter>
   );

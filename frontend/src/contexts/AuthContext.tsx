@@ -38,6 +38,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_BASE = '/api';
 
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      if (typeof window !== 'undefined') localStorage.setItem(key, value);
+    } catch {}
+  },
+  removeItem: (key: string): void => {
+    try {
+      if (typeof window !== 'undefined') localStorage.removeItem(key);
+    } catch {}
+  },
+};
+
 const DEMO_FALLBACK_USERS: Record<string, User> = {
   'devan.tharun@example.com': {
     user_id: 'citizen-001',
@@ -85,15 +105,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearError = useCallback(() => setError(null), []);
 
   const restoreSession = useCallback(async () => {
-    const storedToken = localStorage.getItem('roadsense_token');
-    const storedUser = localStorage.getItem('roadsense_user');
-
-    if (!storedToken || !storedUser) {
-      setIsLoading(false);
-      return;
-    }
-
     try {
+      const storedToken = safeStorage.getItem('roadsense_token');
+      const storedUser = safeStorage.getItem('roadsense_user');
+
+      if (!storedToken || !storedUser) {
+        setIsLoading(false);
+        return;
+      }
+
       const parsedUser = JSON.parse(storedUser);
       setToken(storedToken);
       setUser(parsedUser);
@@ -110,8 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(profile);
           } else if (res.status === 401) {
             // Token explicitly rejected by backend
-            localStorage.removeItem('roadsense_token');
-            localStorage.removeItem('roadsense_user');
+            safeStorage.removeItem('roadsense_token');
+            safeStorage.removeItem('roadsense_user');
             setToken(null);
             setUser(null);
           }
@@ -120,9 +140,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch {
-      // JSON parse error
-      localStorage.removeItem('roadsense_token');
-      localStorage.removeItem('roadsense_user');
+      // JSON parse error or storage error
+      safeStorage.removeItem('roadsense_token');
+      safeStorage.removeItem('roadsense_user');
       setToken(null);
       setUser(null);
     } finally {
@@ -154,8 +174,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (res.ok) {
             const data = await res.json();
-            localStorage.setItem('roadsense_token', data.access_token);
-            localStorage.setItem('roadsense_user', JSON.stringify(data.user));
+            safeStorage.setItem('roadsense_token', data.access_token);
+            safeStorage.setItem('roadsense_user', JSON.stringify(data.user));
             setToken(data.access_token);
             setUser(data.user);
             backendSuccess = true;
@@ -186,8 +206,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
 
       const demoToken = `roadsense_demo_token_${Date.now()}`;
-      localStorage.setItem('roadsense_token', demoToken);
-      localStorage.setItem('roadsense_user', JSON.stringify(fallbackUser));
+      safeStorage.setItem('roadsense_token', demoToken);
+      safeStorage.setItem('roadsense_user', JSON.stringify(fallbackUser));
 
       setToken(demoToken);
       setUser(fallbackUser);
@@ -215,8 +235,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore logout API errors — always clear local session
     } finally {
-      localStorage.removeItem('roadsense_token');
-      localStorage.removeItem('roadsense_user');
+      safeStorage.removeItem('roadsense_token');
+      safeStorage.removeItem('roadsense_user');
       setToken(null);
       setUser(null);
       setError(null);
