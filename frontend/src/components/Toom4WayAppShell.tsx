@@ -18,6 +18,7 @@ import { DecisionEngineStudio } from './DecisionEngineStudio';
 import { CVDVStudio } from './CVDVStudio';
 import { VirtualRIUStudio } from './VirtualRIUStudio';
 import { CarCockpitHMI } from './CarCockpitHMI';
+import { LiveExperienceStudio } from './LiveExperienceStudio';
 import { AboutPortfolioView } from './AboutPortfolioView';
 import { ProjectDeckAndResearchView } from './ProjectDeckAndResearchView';
 import { AIModelCenter } from './AIModelCenter';
@@ -272,6 +273,15 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           badge="GLOSA"
           badgeStyle="bg-emerald-50 text-emerald-700 border border-emerald-200"
           active={currentView === 'car_cockpit'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="live_experience"
+          label="Live Experience"
+          icon={Zap}
+          badge="SIMULATOR"
+          badgeStyle="bg-emerald-100 text-emerald-800 font-bold"
+          active={currentView === 'live_experience'}
           onClick={handleNav}
         />
         <NavItem
@@ -865,6 +875,16 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
                 routes={routes}
                 signals={signals}
                 rius={rius}
+              />
+            </div>
+          )}
+
+          {currentView === 'live_experience' && (
+            <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+              <LiveExperienceStudio
+                vehicle={vehicle}
+                onNavigateTab={handleNav}
+                isEmbedded={false}
               />
             </div>
           )}

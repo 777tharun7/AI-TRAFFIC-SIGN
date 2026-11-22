@@ -301,6 +301,7 @@ export const App: React.FC = () => {
 
           {/* Protected Main Operational Consoles (with Toom4WayAppShell & Sidebar) */}
           <Route path="/operations_overview" element={<ProtectedRoute><AuthenticatedAppContent initialView="operations_overview" /></ProtectedRoute>} />
+          <Route path="/live_experience" element={<ProtectedRoute><AuthenticatedAppContent initialView="live_experience" /></ProtectedRoute>} />
           <Route path="/car_cockpit" element={<ProtectedRoute><AuthenticatedAppContent initialView="car_cockpit" /></ProtectedRoute>} />
           <Route path="/traffic_dept" element={<ProtectedRoute><AuthenticatedAppContent initialView="traffic_dept" /></ProtectedRoute>} />
           <Route path="/tharun_demo" element={<ProtectedRoute><AuthenticatedAppContent initialView="tharun_demo" /></ProtectedRoute>} />

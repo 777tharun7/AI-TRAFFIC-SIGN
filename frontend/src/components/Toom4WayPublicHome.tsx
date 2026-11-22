@@ -8,6 +8,7 @@ import {
   LogIn, UserCheck, ShieldAlert, Scale, Clock, Bus, Smartphone, RefreshCw, X
 } from 'lucide-react';
 import { RealNavigationMap } from './RealNavigationMap';
+import { LiveExperienceStudio } from './LiveExperienceStudio';
 import { RoadSenseLogo } from './RoadSenseLogo';
 import { VehicleState, VirtualRIU, TrafficSignal } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -473,6 +474,16 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
                 </button>
 
                 <button
+                  onClick={() => {
+                    document.getElementById('live-experience-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="flex items-center gap-2 px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl shadow-md transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 text-emerald-400" />
+                  <span>Try Live Driving Simulator (60 FPS)</span>
+                </button>
+
+                <button
                   onClick={() => handlePersonaLogin('citizen_driver')}
                   className="flex items-center gap-2 px-5 py-3.5 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-900 font-bold text-sm rounded-xl shadow-2xs transition-all cursor-pointer"
                 >
@@ -769,6 +780,28 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
               </div>
             </div>
 
+          </section>
+
+          {/* ================= SECTION: INTERACTIVE LIVE EXPERIENCE STUDIO ================= */}
+          <section id="live-experience-section" className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+            <div className="max-w-3xl space-y-2">
+              <span className="text-xs font-bold text-[#00875A] uppercase tracking-wider font-mono flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                INTERACTIVE LIVE EXPERIENCE • 60 FPS DRIVING SIMULATOR
+              </span>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                Take the Wheel: Real-Time Driving & V2X Ambulance Corridor
+              </h2>
+              <p className="text-sm text-slate-600">
+                Experience RoadSense AI hands-on: Steer your EV along Hyderabad's smart corridors using WASD / pedals, ride GLOSA green waves, observe speed traps, and clear emergency lanes when 108 ambulances approach.
+              </p>
+            </div>
+
+            <LiveExperienceStudio
+              vehicle={vehicle}
+              onNavigateTab={onNavigateTab}
+              isEmbedded={true}
+            />
           </section>
 
           {/* Real Project Imagery Section */}
