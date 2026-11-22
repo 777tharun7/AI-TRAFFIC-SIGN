@@ -114,7 +114,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
   onControl,
   onReload
 }) => {
-  const [currentView, setCurrentView] = useState<string>('operations_overview');
+  const [currentView, setCurrentView] = useState<string>('home');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedPersona, setSelectedPersona] = useState<UserPersona>(PERSONAS[0]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -724,6 +724,14 @@ const NavItem: React.FC<NavItemProps> = ({
               signals={signals}
               onNavigateTab={handleNav}
               onControl={onControl}
+              onSelectPersona={(personaId) => {
+                const found = PERSONAS.find(p => p.id === personaId);
+                if (found) {
+                  handleSelectPersona(found);
+                } else {
+                  handleNav('operations_overview');
+                }
+              }}
             />
           )}
 
@@ -861,7 +869,7 @@ const NavItem: React.FC<NavItemProps> = ({
               onNavigate={handleNav}
               onLoginSuccess={(u) => {
                 const found = PERSONAS.find(p => p.name.includes(u.name)) || PERSONAS[0];
-                setSelectedPersona(found);
+                handleSelectPersona(found);
               }}
             />
           )}
