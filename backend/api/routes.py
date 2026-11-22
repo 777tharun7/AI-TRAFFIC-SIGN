@@ -9,8 +9,13 @@ import time
 import cv2
 import numpy as np
 from typing import List, Optional
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+from typing import Optional
+import time
+
+from ..services.auth_service import auth_service
 
 from ..models.schemas import (
     RoadEvent, VirtualRIU, VirtualRIUCreate, TrafficSignal, VehicleState,
@@ -39,6 +44,120 @@ from backend.services.tharun_journey_service import tharun_journey_service
 from ml.inference.detector import TrafficSignDetector
 
 router = APIRouter()
+
+# ----------------- AUTHENTICATION -----------------
+security = HTTPBearer()
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: dict
+
+
+class UserProfile(BaseModel):
+    user_id: str
+    email: str
+    full_name: str
+    phone: Optional[str] = None
+    role: str
+    jurisdiction: Optional[str] = None
+    badge_number: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    badge_color: Optional[str] = None
+    is_active: bool
+    created_at: str
+    last_login: Optional[str] = None
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """Dependency to get current authenticated user from JWT token."""
+    token = credentials.credentials
+    payload = auth_service.verify_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user_id = payload.get("sub")
+    user = auth_service.get_user(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+@router.post(
+    "/auth/login",
+    response_model=TokenResponse,
+    summary="Enterprise login with JWT session",
+)
+async def login(req: LoginRequest):
+    """Authenticate user and return access token."""
+    user = auth_service.authenticate_user(req.email, req.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+
+    token = auth_service.create_access_token(
+        user_id=user["user_id"],
+        role=user["role"],
+        email=user["email"],
+    )
+
+    return TokenResponse(
+        access_token=token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user={
+            "user_id": user["user_id"],
+            "email": user["email"],
+            "full_name": user["full_name"],
+            "role": user["role"],
+            "jurisdiction": user.get("jurisdiction", ""),
+            "badge_number": user.get("badge_number", ""),
+            "vehicle_plate": user.get("vehicle_plate", ""),
+            "badge_color": user.get("badge_color", "bg-emerald-500"),
+            "is_active": user.get("is_active", True),
+        },
+    )
+
+
+@router.post(
+    "/auth/logout",
+    summary="Logout and revoke session",
+)
+async def logout(
+    current_user: dict = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Revoke the current session token."""
+    auth_service.logout(credentials.credentials)
+    return {"status": "logged_out", "message": "Session revoked successfully"}
+
+
+@router.get(
+    "/auth/me",
+    response_model=UserProfile,
+    summary="Get current authenticated user profile",
+)
+async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
+    """Return the profile of the currently authenticated user."""
+    return current_user
+
 
 # Initialize AI Detector
 detector = TrafficSignDetector()
