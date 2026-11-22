@@ -23,178 +23,187 @@ class TharunJourneyService:
         scenes_list = [
             DemoStoryScene(
                 scene_id=1,
-                title="Scene 1 — Starting the Journey",
-                subtitle="Connected Vehicle Experience & Preventive Cockpit HMI",
+                title="Scene 1 — The Project Vision: Preventive Cockpit Guidance",
+                subtitle="Connected Vehicle Intelligence Fusing Edge Vision & RTK GNSS",
                 description=(
-                    "Tharun begins driving his connected electric vehicle (Tata Nexon EV Max, TS 09 EV 4412). "
-                    "The RoadSense AI in-vehicle HMI displays current route, applicable 50 km/h speed limit, "
-                    "GVID telemetry link, battery SoC (74%), and early road hazard advisories."
+                    "RoadSense AI was engineered on a transformative premise: traffic safety should be cooperative and preventive, not a punitive revenue trap. "
+                    "Tharun drives his connected electric vehicle (TS 09 EV 4412) along the Hitec City Connected Corridor. "
+                    "Instead of being surprised by obscured roadside signboards, RoadSense AI detects IRC:67-2012 signs with 99.4% precision and renders dynamic speed envelopes (50 km/h) and hazard advisories directly in the in-cabin HUD."
                 ),
-                actor="Tharun (Vehicle Owner & Driver)",
+                actor="Devanboina Tharun (Driver & Vehicle Owner)",
                 vehicle_plate="TS 09 EV 4412",
                 location="Hitec City Main Road (Heading East)",
                 primary_view="car_cockpit",
                 key_metrics={
+                    "vision_accuracy": "99.4% (YOLOv8 + ResNet)",
                     "current_speed": "42 km/h",
-                    "applicable_limit": "50 km/h",
-                    "gvid_status": "ONLINE (CAN + GNSS 20Hz)",
-                    "battery_soc": "74%",
-                    "next_junction": "Cyber Towers (380m ahead)"
+                    "posted_limit": "50 km/h",
+                    "v2x_telemetry": "ONLINE (5.9 GHz DSRC)",
+                    "battery_soc": "82%",
+                    "project_intent": "Zero Accidental Infractions"
                 },
-                operational_action="Preventive Guidance: Driver informed of upcoming signalized junction and current speed envelope.",
+                operational_action="Preventive Assistance: Driver receives upcoming sign & corridor advisory 300m ahead.",
                 is_active=True
             ),
             DemoStoryScene(
                 scene_id=2,
-                title="Scene 2 — Approaching a Controlled Junction",
-                subtitle="V2X SPaT Signal Awareness & Calibrated Stop-Line",
+                title="Scene 2 — V2X SPaT Green Wave & Calibrated Stop-Lines",
+                subtitle="Cooperative Signal Countdown to Eliminate Sudden Panic Braking",
                 description=(
-                    "As Tharun approaches Cyber Towers Junction, the roadside V-RIU broadcasts live signal phase and timing (SPaT). "
-                    "The traffic signal transitions from Green to Amber (4.0s duration). The in-cockpit HUD alerts Tharun of the stop line ahead."
+                    "Approaching Cyber Towers Junction, the roadside V-RIU broadcasts live Signal Phase and Timing (SPaT). "
+                    "Rather than an abrupt amber transition that causes dangerous rear-end collisions, the in-cabin HUD provides GLOSA (Green Light Optimal Speed Advisory) recommending 42 km/h to cruise through on green, with millisecond-calibrated stop-line awareness."
                 ),
-                actor="Tharun (Vehicle Owner & Driver)",
+                actor="Roadside Virtual RIU & Signal Controller",
                 vehicle_plate="TS 09 EV 4412",
                 location="Cyber Towers Junction (Approach North, Lane 2)",
                 primary_view="road_intelligence",
                 key_metrics={
-                    "signal_state": "YELLOW (Countdown: 2s)",
+                    "signal_phase": "GREEN -> AMBER (4.0s countdown)",
                     "distance_to_stopline": "45 metres",
-                    "current_speed": "38 km/h",
-                    "recommended_action": "Decelerate to smooth stop before stop line"
+                    "glosa_advisory": "42 km/h (Green Wave Locked)",
+                    "v2x_latency": "12 ms (Sub-second Edge)",
+                    "safety_buffer": "15.2 metres safe stopping distance"
                 },
-                operational_action="Signal Advisory: Visual countdown and audible chime warn driver of imminent red transition.",
+                operational_action="Cooperative Deceleration: Driver advised of optimal speed envelope to avoid abrupt braking.",
                 is_active=False
             ),
             DemoStoryScene(
                 scene_id=3,
-                title="Scene 3 — Red-Light Violation Event Generation",
-                subtitle="Synchronized Signal Controller & Calibrated Camera Event",
+                title="Scene 3 — The Real-World Dilemma: Emergency Over-Speeding",
+                subtitle="Rushing a Critically Ill Passenger vs. Automated Radar Traps",
                 description=(
-                    "In this simulation scenario, Tharun's vehicle fails to stop and crosses the marked stop line 1.8 seconds AFTER "
-                    "the red phase becomes active. Roadside PTZ cameras capture multi-frame evidence and ANPR plate crop (98.6% confidence), "
-                    "sealing the package with a SHA-256 cryptographic hash."
+                    "A sudden, severe medical crisis strikes: Tharun's family member in the passenger seat collapses with acute chest pain and cardiac distress. "
+                    "Every second is vital to reach AIG Hospitals Gachibowli. Tharun accelerates to 82 km/h in a 50 km/h zone. "
+                    "Under traditional traffic camera systems, a blind automated challan of ₹2,000 would be issued and license points deducted, unfairly penalizing a citizen trying to save a human life."
                 ),
-                actor="Roadside Edge Unit & Signal Controller",
+                actor="Tharun (Driver under Critical Medical Emergency)",
                 vehicle_plate="TS 09 EV 4412",
-                location="Cyber Towers Junction (Stop Line 1+240)",
-                primary_view="evidence_workflow",
+                location="Cyber Towers Flyover Corridor (HYD-ROAD-101)",
+                primary_view="car_cockpit",
                 key_metrics={
-                    "red_onset_timestamp": "00:15:20 IST",
-                    "stopline_cross_timestamp": "00:15:21.8 IST (+1.8s into red)",
-                    "speed_at_crossing": "38.4 km/h",
-                    "anpr_confidence": "98.6%",
-                    "legal_clearance_status": "CLEAR_VIOLATION"
+                    "measured_speed": "82.4 km/h (Limit: 50 km/h)",
+                    "emergency_nature": "Acute Cardiac / Medical Distress",
+                    "destination": "AIG Hospitals Emergency Ward",
+                    "traditional_system": "Blind ₹2,000 Fine + Court Notice",
+                    "roadsense_solution": "In-Cabin Emergency SOS & Triage Geofencing"
                 },
-                operational_action="Event Detected: Roadside system creates potential violation dossier and queues for officer review.",
+                operational_action="Crisis Event: Driver exceeds posted limit during bona fide life-threatening medical emergency.",
                 is_active=False
             ),
             DemoStoryScene(
                 scene_id=4,
-                title="Scene 4 — Traffic Officer Human-in-the-Loop Review",
-                subtitle="Operational Verification Desk & Legal Assessment",
+                title="Scene 4 — RoadSense AI Solution: Emergency SOS & V2X Corridor",
+                subtitle="Dynamic Green Wave Preemption & Medical Verification Pending",
                 description=(
-                    "Traffic Inspector K. Sridhar opens the evidence review desk. The screen displays the before-crossing frame, "
-                    "stop-line crossing frame, inside-junction frame, and signal controller transition graph. The officer verifies "
-                    "the vehicle did NOT enter during green/yellow (no legal clearance exception) and confirms plate accuracy."
+                    "RoadSense AI introduces the Medical Emergency Exemption Protocol: Tharun taps 'Emergency Medical SOS' in his Cockpit HMI. "
+                    "The system responds instantly: 1) Activates vehicle hazard beacons and broadcasts Emergency Priority V2X packets; "
+                    "2) Roadside signal controllers trigger EVP (Emergency Vehicle Preemption) to turn upcoming signals green; "
+                    "3) The radar logs the 82 km/h speed, but instead of a punitive citation, tags the dossier as 'MEVP: Medical Emergency Verification Pending'."
                 ),
-                actor="Insp. K. Sridhar (Traffic Branch West)",
+                actor="RoadSense AI Autonomous Safety Engine",
                 vehicle_plate="TS 09 EV 4412",
-                location="Traffic Command Centre — Verification Console",
-                primary_view="evidence_workflow",
+                location="Cyber Towers to Gachibowli Expressway",
+                primary_view="traffic_dept",
                 key_metrics={
-                    "evidence_id": "EVD-2026-HYD-0001",
-                    "applicable_law": "Section 184 / Section 119 MV Act",
-                    "camera_calibration": "AIS-140 Certified Valid",
-                    "officer_action_permitted": "Verify Evidence or Request More Evidence"
+                    "emergency_beacon": "ACTIVE (Hazard Strobe + V2X Priority)",
+                    "signal_preemption": "EVP GREEN WAVE ENGAGED",
+                    "enforcement_state": "MEVP: Medical Verification Pending",
+                    "initial_fine_status": "FROZEN (Pending Hospital Validation)",
+                    "hospital_eta": "3.8 Minutes (4.2 km)"
                 },
-                operational_action="Human Verification: Officer inspects evidence sequence and verifies fact of violation under Section 167A CMVR.",
+                operational_action="Smart Preemption: Upcoming signals turned green; citation frozen pending medical proof.",
                 is_active=False
             ),
             DemoStoryScene(
                 scene_id=5,
-                title="Scene 5 — Official e-Challan Issuance",
-                subtitle="Statutory Notice Generation with Section 167A Seal",
+                title="Scene 5 — Verification & Anti-Abuse: Hospital Geofence Audit",
+                subtitle="Automated Cross-Validation with Hospital Admission Triage Slip",
                 description=(
-                    "Upon officer approval, the system generates simulated official e-Challan #TS-HYD-2026-CH-081290 with a penalty of ₹1,000. "
-                    "A certified digital evidence seal and QR code are embedded for legal validity."
+                    "To prevent reckless drivers from falsely claiming emergency, RoadSense AI enforces rigorous 3-point digital verification: "
+                    "1) RTK GNSS confirms vehicle arrived and parked inside AIG Hospital Emergency Bay at 00:22 IST; "
+                    "2) Digital health record / doctor admission slip (Triage Token #ER-2026-HYD-9941) is digitally linked via National Health Authority / ABHA gateway; "
+                    "3) Route kinematics prove non-stop journey straight to the hospital."
                 ),
-                actor="Hyderabad City Police — Traffic Division",
+                actor="Hospital Emergency Desk & City Telematics Gateway",
                 vehicle_plate="TS 09 EV 4412",
-                location="Automated Government Compliance Gateway",
-                primary_view="traffic_dept",
+                location="AIG Hospitals Emergency Bay (Geofence Verified)",
+                primary_view="evidence_workflow",
                 key_metrics={
-                    "challan_number": "TS-HYD-2026-CH-081290",
-                    "penalty_amount": "₹1,000",
-                    "legal_section": "Section 184 MV Act (Red Light Jump)",
-                    "due_date": "15 Days (2026-12-07)",
-                    "data_tag": "[SIMULATED CHALLAN — NOT AN OFFICIAL GOVERNMENT NOTICE]"
+                    "hospital_arrival_time": "00:22:14 IST (Verified)",
+                    "hospital_geofence": "LOCKED: AIG Emergency Ward Bay 2",
+                    "triage_token": "ER-2026-HYD-9941 (Doctor Certified)",
+                    "telematics_trajectory": "Continuous Direct Run (No stops/diversions)",
+                    "anti_abuse_verdict": "GENUINE LIFE-SAVING EMERGENCY VERIFIED"
                 },
-                operational_action="Enforcement Issued: Official simulated citation queued for digital notification to registered owner.",
+                operational_action="Digital Audit: Vehicle location, speed timestamps, and emergency admission record verified.",
                 is_active=False
             ),
             DemoStoryScene(
                 scene_id=6,
-                title="Scene 6 — Citizen & Driver Portal Experience",
-                subtitle="Transparent Evidence Inspection, Digital Pay & Appeals",
+                title="Scene 6 — Judicial Adjudication: 100% Fine Waiver Issued",
+                subtitle="Human-in-the-Loop Officer Approval under Section 194 / 115 MV Act",
                 description=(
-                    "Tharun receives a notification and opens the Citizen Portal. He enters his plate number and views the full "
-                    "violation timeline, camera snapshots, and signal timing proof. Tharun has the option to contest the citation or pay ₹1,000 online."
+                    "Traffic Inspector K. Sridhar opens the Emergency Verification Console. The synchronized dashboard displays the 82 km/h radar snapshot alongside the hospital admission timestamp and emergency triage certificate. "
+                    "Applying statutory Good Samaritan guidelines under Section 115 / Section 194 MV Act, Inspector Sridhar officially approves Waiver Certificate #EX-HYD-2026-789: The ₹2,000 fine is waived to ₹0 and zero license points deducted."
                 ),
-                actor="Tharun (Citizen & Driver)",
+                actor="Insp. K. Sridhar (Cyberabad Traffic Police)",
                 vehicle_plate="TS 09 EV 4412",
-                location="RoadSense AI Citizen Portal",
-                primary_view="citizen_portal",
+                location="Traffic Command & Adjudication Centre",
+                primary_view="evidence_workflow",
                 key_metrics={
-                    "portal_status": "PENDING CITIZEN ACTION",
-                    "evidence_transparency": "Full camera & signal timing proof visible to citizen",
-                    "options_available": "Instant Online Payment (UPI) or Formal Legal Dispute"
+                    "officer_verdict": "OFFICIALLY EXEMPTED (Medical Emergency)",
+                    "statutory_authority": "Section 194 / 115 MV Act (Emergency Exception)",
+                    "penalty_waiver": "₹2,000 -> ₹0 (100% Waived)",
+                    "demerit_points": "0 Points Deducted",
+                    "waiver_certificate": "EX-HYD-2026-789 (Cryptographically Signed)"
                 },
-                operational_action="Citizen Transparency: Citizen sees exact photographic proof and can resolve or contest without court visit.",
+                operational_action="Statutory Waiver: Traffic Inspector signs off on emergency fine waiver with official exemption stamp.",
                 is_active=False
             ),
             DemoStoryScene(
                 scene_id=7,
-                title="Scene 7 — Overspeeding & Dynamic Road Limits",
-                subtitle="Multi-Segment Compliance & Calibration Grace Margins",
+                title="Scene 7 — Citizen Transparency & Digital Ledger",
+                subtitle="Zero-Fee Citizen Portal with Cryptographic Evidence Dossier",
                 description=(
-                    "Later on his journey, Tharun accelerates on the Cyber Towers Flyover approach. The road segment speed limit is 50 km/h. "
-                    "Tharun sustains 74.5 km/h. The engine applies the mandatory ±2.0 km/h sensor uncertainty tolerance and flags an overspeed event."
+                    "Tharun logs into the RoadSense Citizen Portal from his mobile device. Instead of stressful legal notices or court dates, "
+                    "he finds a certified copy of his Medical Exemption Certificate (#EX-HYD-2026-789) and his clean driving record intact. "
+                    "For any non-emergency violation, citizens enjoy transparent photographic proof, radar calibration records, and one-tap dispute mechanisms without intermediaries."
                 ),
-                actor="Tharun (Vehicle Owner & Driver)",
+                actor="Devanboina Tharun (Citizen Motorist)",
                 vehicle_plate="TS 09 EV 4412",
-                location="Cyber Towers Flyover Mid-Span (HYD-ROAD-101)",
-                primary_view="road_intelligence",
+                location="RoadSense AI Citizen Portal",
+                primary_view="citizen_portal",
                 key_metrics={
-                    "measured_speed": "74.5 km/h",
-                    "posted_limit": "50.0 km/h",
-                    "grace_margin": "±2.0 km/h (Driver Benefit of Doubt)",
-                    "admissible_speed": "72.5 km/h (+22.5 km/h over limit)",
-                    "sustained_duration": "4.8 seconds"
+                    "portal_status": "EXEMPTION CONFIRMED (Clean Record)",
+                    "transparency_score": "100% Full Evidence Disclosure",
+                    "dispute_fee": "₹0 (Citizen Friendly)",
+                    "digital_certificate": "Downloadable PDF with QR Validation",
+                    "driver_trust_index": "98.8% Citizen Satisfaction"
                 },
-                operational_action="Multi-Violation Detection: System demonstrates speed compliance checking alongside signal monitoring.",
+                operational_action="Citizen Transparency: Citizen accesses verified exemption documentation and evidence timeline.",
                 is_active=False
             ),
             DemoStoryScene(
                 scene_id=8,
-                title="Scene 8 — Road Safety & Infrastructure Improvement",
-                subtitle="Root-Cause Analysis Over Punitive Enforcement",
+                title="Scene 8 — Closing the Loop: Engineering Safe Corridors",
+                subtitle="From Punitive Fines to Systematic Road Infrastructure Optimization",
                 description=(
-                    "Rather than simply collecting fines, the Department Analytics module aggregates repeated violations at Cyber Towers Junction. "
-                    "It identifies that a 4.0s amber duration on a 3.2% downhill slope causes drivers to overshoot. The platform proposes an "
-                    "infrastructure improvement: extend amber to 5.5s, projected to reduce red-light violations by 68.4%."
+                    "RoadSense AI closes the loop by shifting road safety from collecting penalties to fixing root infrastructure causes. "
+                    "The Traffic Analytics Engine analyzes 142 red-light slips at Cyber Towers Junction and discovers a 3.2% downhill gradient paired with an inadequate 4.0s amber phase. "
+                    "The platform automatically recommends extending the amber duration to 5.5s, projected to eliminate 68.4% of violations before they ever occur."
                 ),
-                actor="Traffic Planning & Engineering Wing",
+                actor="Traffic Planning & Infrastructure Engineering Wing",
                 vehicle_plate="TS 09 EV 4412",
                 location="Cyber Towers Junction Infrastructure Optimization",
                 primary_view="traffic_dept",
                 key_metrics={
-                    "30_day_violation_count": "142 at this junction",
-                    "root_cause": "Downhill gradient + 4.0s amber causes unavoidable overshoot",
-                    "proposed_intervention": "Extend amber interval from 4.0s to 5.5s",
-                    "projected_reduction": "68.4% reduction in red-light violations",
-                    "estimated_cost": "₹15,000 (Software Signal Plan Update)"
+                    "root_cause": "Downhill gradient + 4.0s amber causes overshoot",
+                    "engineered_solution": "Extend amber duration to 5.5s",
+                    "projected_reduction": "68.4% fewer violations",
+                    "implementation_cost": "₹15,000 (Software Signal Plan Update)",
+                    "core_philosophy": "DETECT -> ASSIST -> ADJUDICATE FAIRLY -> IMPROVE"
                 },
-                operational_action="Continuous Improvement: Closing the loop: DETECT -> VERIFY -> ENFORCE -> IMPROVE.",
+                operational_action="Continuous Optimization: Platform implements preventive engineering changes to protect future drivers.",
                 is_active=False
             )
         ]
