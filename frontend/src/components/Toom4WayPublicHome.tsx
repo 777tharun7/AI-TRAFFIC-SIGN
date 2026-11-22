@@ -241,6 +241,30 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
   return (
     <div className="min-h-screen bg-gov-canvas text-gov-slate font-sans selection:bg-[#00875A] selection:text-white">
       
+      {/* ================= 0. OFFICIAL GOVERNMENT TOP BANNER ================= */}
+      <div className="bg-[#0A2540] text-slate-300 text-[11px] font-medium border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <span className="font-bold text-white flex items-center gap-1.5">
+              <span>🇮🇳</span>
+              <span>GOVERNMENT OF TELANGANA</span>
+            </span>
+            <span className="text-slate-500">|</span>
+            <span className="text-slate-300">Transport & Traffic Police Department</span>
+            <span className="hidden md:inline text-slate-500">|</span>
+            <span className="hidden md:inline text-emerald-400 font-mono">Sec 167A CMVR Compliant</span>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs font-mono">
+            <span className="text-slate-400">Emergency: <strong className="text-white">112</strong></span>
+            <span className="text-slate-400">Traffic Helpline: <strong className="text-white">040-2345-7701</strong></span>
+            <span className="hidden sm:inline px-1.5 py-0.5 rounded bg-white/10 text-white font-sans text-[10px]">
+              English / తెలుగు
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* ================= 1. PREMIER TOP SUB-PAGE NAVIGATION ================= */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
@@ -1294,6 +1318,64 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
 
         </div>
       )}
+
+      {/* ================= OFFICIAL GOVERNMENT FOOTER ================= */}
+      <footer className="bg-[#0A1828] text-slate-400 text-xs border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-white font-black text-base">
+                <RoadSenseLogo size="sm" />
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Autonomous Road & Traffic Management Ecosystem. Deployed across Hyderabad smart corridors to reduce accident fatalities and automate Section 167A electronic enforcement.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <h5 className="text-white font-bold text-xs uppercase tracking-wider font-mono">Enforcement Portals</h5>
+              <ul className="space-y-1.5 text-[11px]">
+                <li><button onClick={() => handlePersonaLogin('enforcement_officer')} className="hover:text-white cursor-pointer">Police Enforcement Console</button></li>
+                <li><button onClick={() => handlePersonaLogin('toc_controller')} className="hover:text-white cursor-pointer">ATCS Corridor Controller</button></li>
+                <li><button onClick={() => handlePersonaLogin('citizen_driver')} className="hover:text-white cursor-pointer">Citizen e-Challan Dispute</button></li>
+                <li><button onClick={() => handlePersonaLogin('transit_dispatcher')} className="hover:text-white cursor-pointer">TSRTC Public Transit Fleet</button></li>
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <h5 className="text-white font-bold text-xs uppercase tracking-wider font-mono">Statutory Acts & Standards</h5>
+              <ul className="space-y-1.5 text-[11px]">
+                <li>Section 167A, Central Motor Vehicles Rules 1989</li>
+                <li>Motor Vehicles (Amendment) Act 2019</li>
+                <li>Section 65B, Indian Evidence Act 1872</li>
+                <li>IRC:67-2012 Code of Practice for Road Signs</li>
+                <li>AIS-140 Intelligent Transportation Systems</li>
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <h5 className="text-white font-bold text-xs uppercase tracking-wider font-mono">Traffic Control Center</h5>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Cyberabad Traffic Police Headquarters, Gachibowli, Hyderabad, Telangana 500032.
+              </p>
+              <div className="pt-1 text-[11px] font-mono text-emerald-400">
+                NTP ±2ms Synced • SHA-256 Ledger Active
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
+            <div>
+              © 2026 RoadSense AI • Government of Telangana & Cyberabad Traffic Police. All rights reserved.
+            </div>
+            <div className="flex items-center gap-4">
+              <span>National Informatics Centre (NIC) Integration Standard</span>
+              <span>•</span>
+              <span>Parivahan e-Challan Certified</span>
+            </div>
+          </div>
+        </div>
+      </footer>
 
       {/* ================= IMAGE PREVIEW MODAL ================= */}
       {previewImage && (

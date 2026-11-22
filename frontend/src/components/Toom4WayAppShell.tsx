@@ -416,6 +416,58 @@ const NavItem: React.FC<NavItemProps> = ({
     </>
   );
 
+  // ================= 1. DEDICATED OFFICIAL PUBLIC HOME PAGE (NO SIDEBAR) =================
+  if (currentView === 'home') {
+    return (
+      <div className="min-h-screen bg-gov-canvas text-gov-slate font-sans">
+        <Toom4WayPublicHome
+          vehicle={vehicle}
+          rius={rius}
+          signals={signals}
+          onNavigateTab={handleNav}
+          onControl={onControl}
+          onSelectPersona={(personaId) => {
+            const found = PERSONAS.find(p => p.id === personaId);
+            if (found) {
+              handleSelectPersona(found);
+            } else {
+              handleNav('operations_overview');
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  // ================= 2. DEDICATED SECURE AUTHENTICATION VIEW (NO SIDEBAR) =================
+  if (currentView === 'login') {
+    return (
+      <div className="min-h-screen bg-gov-canvas text-gov-slate flex flex-col">
+        <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
+          <div className="cursor-pointer" onClick={() => handleNav('home')}>
+            <RoadSenseLogo size="md" />
+          </div>
+          <button
+            onClick={() => handleNav('home')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs"
+          >
+            ← Return to Official Home Page
+          </button>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-4">
+          <LoginView
+            onNavigate={handleNav}
+            onLoginSuccess={(u) => {
+              const found = PERSONAS.find(p => p.name.includes(u.name)) || PERSONAS[0];
+              handleSelectPersona(found);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ================= 3. AUTHENTICATED OPERATIONAL WORKSPACE (WITH SIDEBAR) =================
   return (
     <div className="flex min-h-screen bg-[#F6F8FB] text-[#0F172A] font-sans antialiased">
       
@@ -528,6 +580,16 @@ const NavItem: React.FC<NavItemProps> = ({
               <span>Hyderabad, TS</span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
             </div>
+
+            {/* Return to Official Home Page */}
+            <button
+              onClick={() => handleNav('home')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer shadow-2xs transition-colors"
+              title="Return to Official Public Portal"
+            >
+              <Home className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Official Home</span>
+            </button>
 
             {/* Live Connected Status */}
             <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#E6F8F3] rounded-xl text-xs font-semibold text-[#00875A] border border-[#00875A]/20">

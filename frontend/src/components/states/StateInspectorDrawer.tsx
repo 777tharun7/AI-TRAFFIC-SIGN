@@ -12,6 +12,7 @@ interface Props {
   onOpenCookieModal: () => void;
   onNavigateTab: (tabId: string) => void;
   isForcedOffline: boolean;
+  visible?: boolean;
 }
 
 export const StateInspectorDrawer: React.FC<Props> = ({
@@ -19,11 +20,14 @@ export const StateInspectorDrawer: React.FC<Props> = ({
   onToggleForcedOffline,
   onOpenCookieModal,
   onNavigateTab,
-  isForcedOffline
+  isForcedOffline,
+  visible = false
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [simulatedAIFailure, setSimulatedAIFailure] = useState<boolean>(false);
+
+  if (!visible) return null;
 
   const categories = [
     { id: 'all', name: 'All Categories' },
