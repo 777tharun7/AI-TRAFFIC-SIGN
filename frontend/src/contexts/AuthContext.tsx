@@ -137,26 +137,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      // 1. Attempt real backend authentication first
-      let backendSuccess = false;
-      try {
-        const res = await fetch(`${API_BASE}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
+      // 1. Check if static host (e.g. GitHub Pages) where POST /api/auth/login is unsupported
+      const isStaticHost = typeof window !== 'undefined' && (
+        window.location.hostname.includes('github.io') ||
+        window.location.protocol === 'file:'
+      );
 
-        if (res.ok) {
-          const data = await res.json();
-          localStorage.setItem('roadsense_token', data.access_token);
-          localStorage.setItem('roadsense_user', JSON.stringify(data.user));
-          setToken(data.access_token);
-          setUser(data.user);
-          backendSuccess = true;
-          return;
+      let backendSuccess = false;
+      if (!isStaticHost) {
+        try {
+          const res = await fetch(`${API_BASE}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem('roadsense_token', data.access_token);
+            localStorage.setItem('roadsense_user', JSON.stringify(data.user));
+            setToken(data.access_token);
+            setUser(data.user);
+            backendSuccess = true;
+            return;
+          }
+        } catch {
+          // Backend offline or unreachable (e.g. GitHub Pages static hosting)
         }
-      } catch {
-        // Backend offline or unreachable (e.g. GitHub Pages static hosting)
       }
 
       if (backendSuccess) return;

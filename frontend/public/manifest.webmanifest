@@ -1,0 +1,45 @@
+{
+  "name": "RoadSense AI — Connected Road Intelligence",
+  "short_name": "RoadSense AI",
+  "description": "Predictive road intelligence platform fusing edge computer vision (IRC:67-2012), 5.9 GHz V2X SPaT communications, and cooperative safety for connected fleets.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090e17",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "./images/roadsense_logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Car Cockpit HMI",
+      "short_name": "Cockpit",
+      "description": "In-vehicle driver telemetry and HUD",
+      "url": "./#/car_cockpit"
+    },
+    {
+      "name": "Live Experience Simulator",
+      "short_name": "Simulator",
+      "description": "Interactive driving canvas simulator",
+      "url": "./#/live_experience"
+    },
+    {
+      "name": "Citizen Portal",
+      "short_name": "Citizen",
+      "description": "Verify citations and medical exemptions",
+      "url": "./#/citizen_portal"
+    },
+    {
+      "name": "Tharun's Story",
+      "short_name": "Story",
+      "description": "The RoadSense AI manifesto & operational story",
+      "url": "./#/tharun_demo"
+    }
+  ]
+}

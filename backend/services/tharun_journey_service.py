@@ -69,7 +69,7 @@ class TharunJourneyService:
             ),
             DemoStoryScene(
                 scene_id=3,
-                title="Scene 3 — The Real-World Dilemma: Emergency Over-Speeding",
+                title="Scene 3 — Red-Light Violation & Emergency Dilemma: Over-Speeding",
                 subtitle="Rushing a Critically Ill Passenger vs. Automated Radar Traps",
                 description=(
                     "A sudden, severe medical crisis strikes: Tharun's family member in the passenger seat collapses with acute chest pain and cardiac distress. "
@@ -185,7 +185,7 @@ class TharunJourneyService:
             ),
             DemoStoryScene(
                 scene_id=8,
-                title="Scene 8 — Closing the Loop: Engineering Safe Corridors",
+                title="Scene 8 — Road Safety & Infrastructure Improvement: Closing the Loop",
                 subtitle="From Punitive Fines to Systematic Road Infrastructure Optimization",
                 description=(
                     "RoadSense AI closes the loop by shifting road safety from collecting penalties to fixing root infrastructure causes. "

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, Search, FileText, CheckCircle2, Clock, AlertCircle, 
   CreditCard, ShieldCheck, HelpCircle, ExternalLink, RefreshCw, Zap, MapPin,
-  Download, FileDown, Lock, Scale, Leaf, AlertTriangle, Shield
+  Download, FileDown, Lock, Scale, Leaf, AlertTriangle, Shield, HeartPulse, Award, Building
 } from 'lucide-react';
 import { EChallanRecord } from '../types';
 
@@ -120,6 +120,14 @@ export const CitizenPortalView: React.FC = () => {
   // Download receipt state
   const [downloadingChallanId, setDownloadingChallanId] = useState<string | null>(null);
   const [receiptFeedback, setReceiptFeedback] = useState<string | null>(null);
+
+  // Medical Emergency Exemption Modal state
+  const [medicalWaiverModalOpen, setMedicalWaiverModalOpen] = useState<boolean>(false);
+  const [selectedChallanForWaiver, setSelectedChallanForWaiver] = useState<EChallanRecord | null>(null);
+  const [hospitalName, setHospitalName] = useState<string>('AIG Hospitals Gachibowli');
+  const [patientCondition, setPatientCondition] = useState<string>('Acute Cardiac Emergency / Severe Trauma');
+  const [triageToken, setTriageToken] = useState<string>('ER-2026-HYD-9941');
+  const [isVerifyingWaiver, setIsVerifyingWaiver] = useState<boolean>(false);
 
   const searchChallans = async () => {
     setLoading(true);
@@ -298,6 +306,114 @@ Vehicles Rules, 1989 (as amended). Valid without physical signature."
       setReceiptFeedback(`Certified Receipt downloaded successfully: Certified_eChallan_Receipt_${ch.challan_number}.txt`);
       setTimeout(() => setReceiptFeedback(null), 5000);
     }, 800);
+  };
+
+  const handleOpenMedicalWaiver = (ch: EChallanRecord) => {
+    setSelectedChallanForWaiver(ch);
+    setHospitalName('AIG Hospitals Gachibowli');
+    setPatientCondition('Acute Cardiac Emergency / Severe Trauma');
+    setTriageToken('ER-2026-HYD-9941');
+    setMedicalWaiverModalOpen(true);
+  };
+
+  const handleVerifyMedicalWaiver = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedChallanForWaiver) return;
+
+    setIsVerifyingWaiver(true);
+
+    setTimeout(() => {
+      const waiverCertNumber = 'EX-HYD-2026-789';
+      setChallans(prev => prev.map(ch => {
+        if (ch.challan_id === selectedChallanForWaiver.challan_id) {
+          return {
+            ...ch,
+            status: 'PAID' as any,
+            penalty_amount_inr: 0,
+            payment_receipt_id: `WAIVER-${waiverCertNumber}`,
+            payment_timestamp: new Date().toISOString(),
+            payment_mode: 'Section 194 MV Act Good Samaritan Statutory Exemption',
+            dispute_reason: `Medical Emergency: ${patientCondition} at ${hospitalName} (Triage Token: ${triageToken})`,
+            dispute_resolution_note: `Statutory Exemption Certificate #${waiverCertNumber} Approved by Cyberabad Traffic Police (100% Fine Waived to ₹0 under Section 194 / 115 MV Act).`
+          };
+        }
+        return ch;
+      }));
+
+      setIsVerifyingWaiver(false);
+      setMedicalWaiverModalOpen(false);
+      setReceiptFeedback(`Medical Emergency Exemption Approved! Waiver Certificate #${waiverCertNumber} generated. Penalty waived from ₹${selectedChallanForWaiver.penalty_amount_inr} to ₹0.`);
+      setTimeout(() => setReceiptFeedback(null), 8000);
+    }, 1000);
+  };
+
+  const handleDownloadExemptionCertificate = (ch: EChallanRecord) => {
+    setDownloadingChallanId(ch.challan_id);
+    const waiverId = ch.payment_receipt_id?.replace('WAIVER-', '') || 'EX-HYD-2026-789';
+    
+    setTimeout(() => {
+      const exemptionDoc = `================================================================================
+GOVERNMENT OF TELANGANA — POLICE DEPARTMENT
+CYBERABAD TRAFFIC POLICE EXECUTIVE ADJUDICATION WING
+OFFICIAL STATUTORY EXEMPTION & GOOD SAMARITAN IMMUNITY CERTIFICATE
+Under Section 134A & Section 194 / 115 of the Motor Vehicles Act, 1988 (Amended 2019)
+================================================================================
+EXEMPTION CERTIFICATE NO : ${waiverId}
+DATE OF ADJUDICATION    : ${new Date().toLocaleDateString('en-IN')}
+ISSUING AUTHORITY       : Insp. K. Sridhar, TPS (Cyberabad Traffic Ops Div II)
+
+VEHICLE & MOTORIST DETAILS:
+--------------------------------------------------------------------------------
+VEHICLE REGISTRATION    : ${ch.vehicle_reg_num} (Tata Nexon EV Max)
+REGISTERED OWNER        : ${ch.owner_name}
+ORIGINAL CITATION NO    : ${ch.challan_number}
+RECORDED INFRACTION     : ${ch.violation_type}
+RADAR SPEED LOGGED      : ${ch.speed_detected_kmh || 74.5} km/h (Corridor Limit: ${ch.speed_limit_kmh || 50.0} km/h)
+INCIDENT LOCATION       : ${ch.road_location}
+INCIDENT TIMESTAMP      : ${ch.violation_timestamp}
+
+EMERGENCY HOSPITAL VERIFICATION AUDIT:
+--------------------------------------------------------------------------------
+EMERGENCY FACILITY      : AIG Hospitals Emergency Bay (Gachibowli)
+HOSPITAL TRIAGE TOKEN   : ER-2026-HYD-9941 (Certified by Duty Emergency Physician)
+TRAJECTORY VERIFICATION : Continuous Direct Transit verified via u-blox RTK GNSS
+GEOFENCE ENTRY TIME     : 00:22:14 IST (Transit time: 4m 12s)
+VERIFICATION STATUS     : BONA FIDE LIFE-SAVING MEDICAL EMERGENCY (VERIFIED)
+
+STATUTORY ADJUDICATION & LEGAL DETERMINATION:
+--------------------------------------------------------------------------------
+ORIGINAL PENALTY        : INR ${ch.penalty_amount_inr > 0 ? ch.penalty_amount_inr : '1,500'}.00
+STATUTORY WAIVER        : 100% WAIVED (INR 0.00 DUE)
+DEMERIT POINTS RECORDED : 0 (PROTECTED CLEAN RECORD)
+APPLICABLE SECTIONS     : Section 194 MVA (Emergency Exemption)
+                          Section 134A MVA (Protection of Good Samaritans)
+                          Ministry of Road Transport & Highways Notification No. RT-25035
+
+OFFICIAL ADJUDICATION SUMMARY:
+"The competent authority having inspected synchronized telemetry, radar logs,
+and hospital emergency triage records certifies that the recorded overspeeding
+was executed during an active life-saving emergency. The citation is officially
+quashed and expunged from the driver's driving license record."
+
+DIGITAL SIGNATURE & SEAL:
+INSPECTOR K. SRIDHAR, TPS (E-SIGNED WITH SHA-256 TIMESTAMP LOCK)
+CYBERABAD TRAFFIC POLICE — TELANGANA STATE
+================================================================================`;
+
+      const blob = new Blob([exemptionDoc], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Official_Medical_Exemption_Certificate_${waiverId}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setDownloadingChallanId(null);
+      setReceiptFeedback(`Exemption Certificate downloaded: Official_Medical_Exemption_Certificate_${waiverId}.txt`);
+      setTimeout(() => setReceiptFeedback(null), 5000);
+    }, 600);
   };
 
   return (
@@ -535,25 +651,38 @@ Vehicles Rules, 1989 (as amended). Valid without physical signature."
                         </div>
                       </div>
 
-                      {/* Official Download Receipt Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadReceipt(ch)}
-                        disabled={downloadingChallanId === ch.challan_id}
-                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95 shrink-0"
-                      >
-                        {downloadingChallanId === ch.challan_id ? (
-                          <>
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Exporting Record...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Download Certified Electronic Record (Sec 167A)</span>
-                          </>
+                      {/* Official Download Receipt Button / Exemption Certificate */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {ch.payment_receipt_id?.startsWith('WAIVER-') && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadExemptionCertificate(ch)}
+                            disabled={downloadingChallanId === ch.challan_id}
+                            className="px-4 py-2 bg-gradient-to-r from-amber-600 to-emerald-700 hover:from-amber-700 hover:to-emerald-800 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
+                          >
+                            <Award className="w-3.5 h-3.5 text-amber-200" />
+                            <span>Download Statutory Exemption Certificate</span>
+                          </button>
                         )}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadReceipt(ch)}
+                          disabled={downloadingChallanId === ch.challan_id}
+                          className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95 shrink-0"
+                        >
+                          {downloadingChallanId === ch.challan_id ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Exporting Record...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Download Certified Electronic Record (Sec 167A)</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   ) : isDisputed ? (
                     <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-950 space-y-1.5">
@@ -571,6 +700,15 @@ Vehicles Rules, 1989 (as amended). Valid without physical signature."
                   ) : (
                     /* Action Buttons for Unpaid Citations */
                     <div className="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenMedicalWaiver(ch)}
+                        className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                      >
+                        <HeartPulse className="w-3.5 h-3.5 text-white animate-pulse" />
+                        <span>Emergency Medical Waiver (MVA Sec 194)</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -707,6 +845,150 @@ Vehicles Rules, 1989 (as amended). Valid without physical signature."
                   className="px-5 py-2 bg-[#00875A] hover:bg-[#00744E] text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm"
                 >
                   Submit Statutory Appeal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Emergency Medical Overspeeding Waiver Modal (MVA Sec 194 & Good Samaritan) */}
+      {medicalWaiverModalOpen && selectedChallanForWaiver && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-5 my-8 border border-slate-200">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-mono font-bold uppercase tracking-wider">
+                  <HeartPulse className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
+                  <span>Statutory Good Samaritan Protocol (MVA Sec 194 / 134A)</span>
+                </div>
+                <h3 className="text-lg font-black text-slate-900">
+                  Medical Emergency Overspeeding Waiver Desk
+                </h3>
+                <p className="text-xs text-slate-600">
+                  Immediate 100% fine waiver for citizens rushing critically ill patients or trauma victims to accredited emergency hospitals.
+                </p>
+              </div>
+            </div>
+
+            {/* Citation Context Bar */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Infraction Logged</span>
+                <span className="font-bold text-slate-800">{selectedChallanForWaiver.challan_number}</span>
+                <span className="text-slate-500 ml-1.5 font-mono">({selectedChallanForWaiver.road_location})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold font-mono text-xs">
+                  {selectedChallanForWaiver.speed_detected_kmh || 74.5} km/h in 50 km/h zone
+                </span>
+                <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 font-bold font-mono text-xs">
+                  Penalty: ₹{selectedChallanForWaiver.penalty_amount_inr} → ₹0
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleVerifyMedicalWaiver} className="space-y-4">
+              {/* Hospital Selection */}
+              <div>
+                <label className="text-xs font-bold text-slate-800 block mb-1">
+                  Destination Emergency Facility / Hospital Name
+                </label>
+                <div className="relative">
+                  <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={hospitalName}
+                    onChange={(e) => setHospitalName(e.target.value)}
+                    placeholder="e.g. AIG Hospitals Gachibowli, Apollo Jubilee Hills"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                </div>
+              </div>
+
+              {/* Triage Token & Condition */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-1">
+                    Hospital Emergency Token / ABHA ID
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={triageToken}
+                    onChange={(e) => setTriageToken(e.target.value)}
+                    placeholder="e.g. ER-2026-HYD-9941"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-800 block mb-1">
+                    Emergency Nature / Diagnosis
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={patientCondition}
+                    onChange={(e) => setPatientCondition(e.target.value)}
+                    placeholder="e.g. Acute Cardiac Emergency / Severe Trauma"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  />
+                </div>
+              </div>
+
+              {/* Verified Telemetry Correlation Card */}
+              <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>RoadSense V2X &amp; GNSS Corridor Correlation (Auto-Audited)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700 pt-1">
+                  <div className="p-2 bg-white/80 rounded-lg border border-emerald-100">
+                    <span className="text-slate-400 block text-[9px] font-mono uppercase">Trajectory Log</span>
+                    <span className="font-semibold text-emerald-800">Direct transit to AIG ER Bay</span>
+                  </div>
+                  <div className="p-2 bg-white/80 rounded-lg border border-emerald-100">
+                    <span className="text-slate-400 block text-[9px] font-mono uppercase">Hospital Geofence In</span>
+                    <span className="font-semibold text-emerald-800">00:22:14 IST (4m 12s duration)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Statutory Legal Declaration */}
+              <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
+                <span className="font-bold text-slate-800 block">Section 134A Motor Vehicles Act Guarantee:</span>
+                <span>
+                  No citizen rushing a medical emergency or acting as a Good Samaritan shall be subjected to punitive criminal or civil penalties for speed deviations necessary to prevent fatality.
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setMedicalWaiverModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isVerifyingWaiver}
+                  className="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-emerald-600 hover:from-rose-700 hover:to-emerald-700 text-white text-xs font-black rounded-xl cursor-pointer shadow-md active:scale-95 flex items-center gap-2"
+                >
+                  {isVerifyingWaiver ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                      <span>Verifying with Hospital Health Gateway...</span>
+                    </>
+                  ) : (
+                    <>
+                      <HeartPulse className="w-4 h-4 text-white" />
+                      <span>Verify &amp; Issue Statutory 100% Waiver (₹0)</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
