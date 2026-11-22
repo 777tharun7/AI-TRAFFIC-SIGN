@@ -380,31 +380,47 @@ export const api = {
       }, 300);
     };
 
+    const mockWs: any = {
+      readyState: 1, // WebSocket.OPEN
+      send: (_data: any) => {},
+      close: () => {
+        if (ws) ws.close();
+        if (ticker) clearInterval(ticker);
+      },
+      addEventListener: (_type: string, _listener: any) => {},
+      removeEventListener: (_type: string, _listener: any) => {},
+      onopen: null,
+      onmessage: null,
+      onerror: null,
+      onclose: null,
+    };
+
     try {
       ws = new WebSocket(`${WS_BASE}/vehicle/${vehicleId}`);
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           onMessage(data);
+          if (typeof mockWs.onmessage === 'function') mockWs.onmessage(event);
         } catch (e) {
           console.error('WS Parse Error:', e);
         }
       };
-      ws.onerror = () => {
+      ws.onerror = (e) => {
         startFallbackSimulation();
+        if (typeof mockWs.onerror === 'function') mockWs.onerror(e);
       };
-      ws.onclose = () => {
+      ws.onclose = (e) => {
         startFallbackSimulation();
+        if (typeof mockWs.onclose === 'function') mockWs.onclose(e);
+      };
+      ws.onopen = (e) => {
+        if (typeof mockWs.onopen === 'function') mockWs.onopen(e);
       };
     } catch {
       startFallbackSimulation();
     }
 
-    return {
-      close: () => {
-        if (ws) ws.close();
-        if (ticker) clearInterval(ticker);
-      }
-    } as any;
+    return mockWs as WebSocket;
   }
 };

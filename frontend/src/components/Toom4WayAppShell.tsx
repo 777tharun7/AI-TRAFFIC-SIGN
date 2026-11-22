@@ -555,7 +555,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
-      <aside className={`fixed top-0 bottom-0 left-0 w-72 bg-white z-50 flex flex-col justify-between shadow-2xl transition-transform duration-200 lg:hidden overflow-y-auto ${
+      <aside className={`fixed top-0 bottom-0 left-0 w-72 bg-white z-50 flex flex-col justify-between shadow-2xl transition-transform duration-200 lg:hidden overflow-y-auto pb-safe ${
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="p-5 space-y-4">
@@ -565,7 +565,8 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
             </div>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg cursor-pointer"
+              className="w-11 h-11 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-xl cursor-pointer"
+              aria-label="Close Navigation Menu"
             >
               <X className="w-5 h-5" />
             </button>
@@ -589,19 +590,19 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-[#E2E8F0] px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-30 shadow-2xs">
+        <header className="h-16 bg-white border-b border-[#E2E8F0] px-4 sm:px-6 flex items-center justify-between gap-3 sm:gap-4 sticky top-0 z-30 shadow-2xs">
 
-          {/* Left: Mobile Menu Toggle & Search Bar with Guaranteed Min Width */}
-          <div className="flex items-center gap-3 flex-1 max-w-sm sm:max-w-md min-w-[200px]">
+          {/* Left: Mobile Menu Toggle & Search Bar with Flexible Responsive Width */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 max-w-xs sm:max-w-md">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+              className="lg:hidden w-11 h-11 flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer shrink-0"
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
-            <div className="relative w-full">
+            <div className="relative w-full min-w-0">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"

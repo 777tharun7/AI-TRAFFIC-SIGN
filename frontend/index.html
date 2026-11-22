@@ -3,9 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%2310b981'/><stop offset='1' stop-color='%23059669'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='%23020617'/><path d='M22 42 A38 38 0 0 1 78 42' stroke='url(%23g)' stroke-width='4' fill='none'/><polygon points='50,22 18,88 82,88' fill='%2310b981' fill-opacity='0.25'/><line x1='50' y1='22' x2='18' y2='88' stroke='url(%23g)' stroke-width='6'/><line x1='50' y1='22' x2='82' y2='88' stroke='url(%23g)' stroke-width='6'/><line x1='50' y1='40' x2='50' y2='52' stroke='white' stroke-width='3'/><line x1='50' y1='64' x2='50' y2='82' stroke='white' stroke-width='4'/><path d='M30 68 L42 68 L47 54 L52 80 L57 58 L62 68 L70 68' stroke='%2306b6d4' stroke-width='4' fill='none'/></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
     <title>RoadSense AI — Predictive Road Intelligence Platform</title>
     <meta name="description" content="RoadSense AI: Connected vehicle intelligence platform fusing edge computer vision (IRC:67-2012), 5.9 GHz V2X SPaT communications, and dual-band RTK GNSS localization for connected fleets." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,6 +16,7 @@
     <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <!-- PWA Web App Manifest -->
     <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="alternate" type="application/manifest+json" href="./manifest.json" />
     <meta name="theme-color" content="#090e17" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -22,7 +25,7 @@
   </head>
   <body class="bg-[#090e17] text-white antialiased selection:bg-emerald-500 selection:text-white">
     <div id="root">
-      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background-color: #090e17; color: #10b981; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div style="min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; background-color: #090e17; color: #10b981; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <div style="text-align: center; padding: 20px;">
           <div style="width: 44px; height: 44px; border: 3px solid rgba(16, 185, 129, 0.2); border-top-color: #10b981; border-radius: 50%; margin: 0 auto 16px; animation: rs-spin 0.8s linear infinite;"></div>
           <div style="font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #34d399; font-family: monospace;">INITIALIZING ROADSENSE AI</div>

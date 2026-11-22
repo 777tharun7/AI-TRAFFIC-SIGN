@@ -1411,7 +1411,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
           </div>
 
           {/* Canvas Interactive Screen */}
-          <div className="relative w-full h-[540px] rounded-3xl overflow-hidden bg-slate-950 border-2 border-slate-800 shadow-2xl flex items-center justify-center">
+          <div className="relative w-full h-[420px] sm:h-[480px] lg:h-[540px] rounded-3xl overflow-hidden bg-slate-950 border-2 border-slate-800 shadow-2xl flex items-center justify-center">
             <canvas
               ref={canvasRef}
               className="w-full h-full cursor-crosshair"
@@ -1452,7 +1452,7 @@ export const LiveExperienceStudio: React.FC<Props> = ({
             )}
 
             {/* Live Mission Objectives HUD Card (Top-Left of Screen) */}
-            <div className="absolute top-4 left-4 z-20 bg-slate-950/85 backdrop-blur-md border border-slate-800 rounded-2xl p-3 shadow-2xl text-white max-w-xs space-y-1.5 pointer-events-none">
+            <div className="absolute top-4 left-4 z-20 bg-slate-950/85 backdrop-blur-md border border-slate-800 rounded-2xl p-3 shadow-2xl text-white max-w-xs space-y-1.5 pointer-events-none hidden sm:block">
               <div className="flex items-center justify-between border-b border-slate-800 pb-1">
                 <span className="text-[10px] font-mono font-bold uppercase text-slate-400">Mission Objectives</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
@@ -1475,21 +1475,21 @@ export const LiveExperienceStudio: React.FC<Props> = ({
 
             {/* Overlay Ambulance Siren Flasher Banner */}
             {uiStats.ambulanceIncoming && (
-              <div className="absolute top-4 right-4 left-64 z-20 bg-red-600/90 backdrop-blur-md text-white border-2 border-white rounded-2xl p-2.5 shadow-2xl flex items-center justify-between px-4 animate-pulse">
-                <div className="flex items-center gap-2.5">
+              <div className="absolute top-4 inset-x-4 sm:left-72 sm:right-4 z-20 bg-red-600/95 backdrop-blur-md text-white border-2 border-white rounded-2xl p-2.5 shadow-2xl flex items-center justify-between px-3 sm:px-4 animate-pulse">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <Siren className="w-5 h-5 animate-bounce shrink-0" />
                   <div className="min-w-0">
-                    <span className="text-xs font-black tracking-wider uppercase block truncate">
-                      🚨 108 AMBULANCE APPROACHING — {uiStats.ambulanceDistBehind}m BEHIND
+                    <span className="text-[11px] sm:text-xs font-black tracking-wider uppercase block truncate">
+                      🚨 108 AMBULANCE — {uiStats.ambulanceDistBehind}m BEHIND
                     </span>
-                    <span className="text-[10px] font-mono text-red-100 truncate block">
+                    <span className="text-[9px] sm:text-[10px] font-mono text-red-100 truncate block">
                       V2X Priority Preemption: Clear center lane immediately!
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleLaneChange('left')}
-                  className="px-3 py-1 bg-white text-red-700 rounded-lg text-xs font-black uppercase tracking-wider hover:bg-red-50 cursor-pointer shadow-md shrink-0 ml-2"
+                  className="px-2.5 sm:px-3 py-1 bg-white text-red-700 rounded-lg text-xs font-black uppercase tracking-wider hover:bg-red-50 cursor-pointer shadow-md shrink-0 ml-2"
                 >
                   Yield Left ◀
                 </button>
@@ -1497,34 +1497,34 @@ export const LiveExperienceStudio: React.FC<Props> = ({
             )}
 
             {/* On-Screen Steering Wheel & Interactive Touch Pedals */}
-            <div className="absolute bottom-4 inset-x-4 z-20 flex items-center justify-between pointer-events-none">
+            <div className="absolute bottom-3 sm:bottom-4 inset-x-3 sm:inset-x-4 z-20 flex items-center justify-between pointer-events-none">
               
               {/* Left Group: Steer Buttons & Blinker */}
               <div className="flex items-center gap-2 pointer-events-auto">
                 <button
                   onClick={() => handleLaneChange('left')}
-                  className={`w-14 h-14 rounded-2xl border shadow-2xl flex flex-col items-center justify-center font-bold text-xs active:scale-95 transition-all cursor-pointer backdrop-blur-md ${
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border shadow-2xl flex flex-col items-center justify-center font-bold text-xs active:scale-95 transition-all cursor-pointer backdrop-blur-md ${
                     turnIndicator === 'left' ? 'bg-amber-500 text-black border-amber-300 animate-pulse' : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/80'
                   }`}
                   title="Steer Left (A / Left Arrow)"
                 >
                   <ArrowLeft className="w-5 h-5 text-emerald-400" />
-                  <span className="text-[9px] font-mono">LEFT</span>
+                  <span className="text-[8px] sm:text-[9px] font-mono">LEFT</span>
                 </button>
                 <button
                   onClick={() => handleLaneChange('right')}
-                  className={`w-14 h-14 rounded-2xl border shadow-2xl flex flex-col items-center justify-center font-bold text-xs active:scale-95 transition-all cursor-pointer backdrop-blur-md ${
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border shadow-2xl flex flex-col items-center justify-center font-bold text-xs active:scale-95 transition-all cursor-pointer backdrop-blur-md ${
                     turnIndicator === 'right' ? 'bg-amber-500 text-black border-amber-300 animate-pulse' : 'bg-slate-900/90 hover:bg-slate-800 text-white border-slate-700/80'
                   }`}
                   title="Steer Right (D / Right Arrow)"
                 >
                   <ArrowRight className="w-5 h-5 text-emerald-400" />
-                  <span className="text-[9px] font-mono">RIGHT</span>
+                  <span className="text-[8px] sm:text-[9px] font-mono">RIGHT</span>
                 </button>
               </div>
 
-              {/* Center: Interactive Steering Wheel & Telemetry */}
-              <div className="bg-slate-950/85 backdrop-blur-md border border-slate-800 rounded-2xl px-5 py-2 text-center text-white pointer-events-auto shadow-2xl flex items-center gap-3">
+              {/* Center: Interactive Steering Wheel & Telemetry (Hidden on small mobile screens to prevent pedal collision) */}
+              <div className="hidden sm:flex bg-slate-950/85 backdrop-blur-md border border-slate-800 rounded-2xl px-5 py-2 text-center text-white pointer-events-auto shadow-2xl items-center gap-3">
                 {/* Rotating Virtual Steering Wheel */}
                 <div 
                   className="w-10 h-10 rounded-full border-4 border-slate-500 flex items-center justify-center transition-transform duration-200 shadow-inner"
