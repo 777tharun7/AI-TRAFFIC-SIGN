@@ -4,7 +4,7 @@ import {
   ShieldCheck, Zap, ArrowUp, ArrowDown, RotateCcw, 
   Play, Pause, Gauge, BatteryCharging, MapPin,
   Sun, Moon, Shield, Info, Battery, Sparkles, CheckCircle2,
-  Map as MapIcon, LayoutDashboard, SplitSquareVertical
+  Map as MapIcon, LayoutDashboard, SplitSquareVertical, HeartPulse, Volume2, VolumeX
 } from 'lucide-react';
 import { VehicleState, VirtualRIU, TrafficSignal } from '../types';
 import { RealNavigationMap } from './RealNavigationMap';
@@ -28,6 +28,31 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
   const [lightingMode, setLightingMode] = useState<'night' | 'day'>('night');
   // Cockpit Display Mode: Pure Cluster vs Split with Navigation Map vs Full Map
   const [cockpitViewMode, setCockpitViewMode] = useState<'cluster' | 'split' | 'map'>('split');
+  // MVA Section 194 Medical Emergency Transit Mode
+  const [isMedicalEmergency, setIsMedicalEmergency] = useState<boolean>(false);
+  const [isSoundMuted, setIsSoundMuted] = useState<boolean>(false);
+
+  // Pure Web Audio API Synthesizer for Automotive HUD Feedback (Zero MP3 Dependencies)
+  const playCockpitTone = (frequency: number, duration: number, type: OscillatorType = 'sine') => {
+    if (isSoundMuted || typeof window === 'undefined') return;
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch {
+      // AudioPolicy suppressed or unavailable
+    }
+  };
 
   if (!vehicle) {
     return (
@@ -182,6 +207,26 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
             </div>
           ) : (
             <>
+              {/* Emergency Medical Transit Status Banner (MVA Sec 194 & 134A) */}
+              {isMedicalEmergency && (
+                <div className="mt-4 p-3.5 bg-gradient-to-r from-rose-950/90 via-red-900/70 to-rose-950/90 border-2 border-rose-500 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs shadow-lg shadow-rose-900/30 animate-pulse">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-rose-400 animate-ping" />
+                    <div>
+                      <span className="font-mono font-black text-rose-200 tracking-wider uppercase block text-[11px]">
+                        🚨 MVA SEC 194 LIFE-SAVING MEDICAL TRANSIT ENGAGED
+                      </span>
+                      <span className="text-slate-300 text-[10px] font-mono">
+                        Destination: AIG Hospitals Emergency Bay (Gachibowli) • Hazard Flashers ON • V2X Priority Beacon Active
+                      </span>
+                    </div>
+                  </div>
+                  <div className="px-3 py-1 rounded-xl bg-black/60 border border-rose-400/50 text-rose-300 font-mono font-bold text-[10px]">
+                    STATUTORY FINE IMMUNITY ACTIVE
+                  </div>
+                </div>
+              )}
+
               {/* Cockpit Core: 3-Column Ergonomic Cluster */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center py-6">
             
@@ -588,6 +633,48 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
               >
                 <ArrowDown className="w-4 h-4" />
                 <span>-5 km/h</span>
+              </button>
+
+              {/* MVA Section 194 Medical Emergency Transit Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextState = !isMedicalEmergency;
+                  setIsMedicalEmergency(nextState);
+                  if (nextState) {
+                    playCockpitTone(520, 0.15, 'triangle');
+                    setTimeout(() => playCockpitTone(780, 0.25, 'triangle'), 160);
+                  }
+                }}
+                className={`min-h-[44px] px-4 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-2 active:scale-95 ${
+                  isMedicalEmergency
+                    ? 'bg-rose-600 border-rose-400 text-white shadow-lg shadow-rose-600/40 animate-pulse'
+                    : 'bg-rose-950/40 hover:bg-rose-900/50 border-rose-600/40 text-rose-300'
+                }`}
+                title="Toggle MVA Section 194 Life-Saving Emergency Transit"
+              >
+                <HeartPulse className="w-4 h-4 text-white" />
+                <span>{isMedicalEmergency ? 'Emergency Transit Engaged' : 'Medical Transit (Sec 194)'}</span>
+              </button>
+
+              {/* Cockpit Audio Chimes Mute/Unmute */}
+              <button
+                type="button"
+                onClick={() => setIsSoundMuted(!isSoundMuted)}
+                className="min-h-[44px] px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 border border-white/10 cursor-pointer flex items-center gap-1.5"
+                title={isSoundMuted ? 'Unmute Audio Chimes' : 'Mute Audio Chimes'}
+              >
+                {isSoundMuted ? (
+                  <>
+                    <VolumeX className="w-4 h-4 text-slate-400" />
+                    <span className="hidden sm:inline text-[11px] font-mono">Muted</span>
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-4 h-4 text-emerald-400" />
+                    <span className="hidden sm:inline text-[11px] font-mono">Audio ON</span>
+                  </>
+                )}
               </button>
             </div>
 

@@ -39,6 +39,35 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
   const [enforcementFilter, setEnforcementFilter] = useState<'all' | 'automated' | 'officer' | 'safety'>('all');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // Progressive Web App (PWA) Native Installation Hook
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  const [isAppInstalled, setIsAppInstalled] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsAppInstalled(true);
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsAppInstalled(true);
+    }
+    setDeferredInstallPrompt(null);
+  };
+
   // Animated Traffic Light State Machine
   const [signalPhase, setSignalPhase] = useState<'RED' | 'AMBER' | 'GREEN'>('RED');
   const [countdown, setCountdown] = useState<number>(20);
@@ -345,8 +374,19 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
             </button>
           </nav>
 
-          {/* Quick Login & Direct Console Launch */}
+          {/* Quick Login, PWA Install & Direct Console Launch */}
           <div className="flex items-center gap-2.5">
+            {deferredInstallPrompt && !isAppInstalled && (
+              <button
+                onClick={handleInstallApp}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-800 border border-emerald-500/30 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
+                title="Install RoadSense AI on Desktop or Mobile"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Install App</span>
+              </button>
+            )}
+
             {isAuthenticated && user ? (
               <div className="flex items-center gap-2">
                 <button
