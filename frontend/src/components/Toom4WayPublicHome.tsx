@@ -10,6 +10,7 @@ import {
 import { RealNavigationMap } from './RealNavigationMap';
 import { RoadSenseLogo } from './RoadSenseLogo';
 import { VehicleState, VirtualRIU, TrafficSignal } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
   vehicle: VehicleState | null;
@@ -30,6 +31,7 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
   onControl,
   onSelectPersona
 }) => {
+  const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<HomePageTab>('overview');
   const [selectedProcessStep, setSelectedProcessStep] = useState<number>(1);
   const [selectedSpecTab, setSelectedSpecTab] = useState<'perception' | 'v2x' | 'localization' | 'safety'>('perception');
@@ -72,10 +74,18 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
   };
 
   const handlePersonaLogin = (personaId: string) => {
-    if (onSelectPersona) {
-      onSelectPersona(personaId);
+    if (isAuthenticated) {
+      let dest = 'car_cockpit';
+      if (personaId === 'enforcement_officer') dest = 'operations_overview';
+      else if (personaId === 'system_admin' || personaId === 'toc_controller') dest = 'traffic_dept';
+      else if (personaId === 'transit_dispatcher') dest = 'fleet_operations';
+      onNavigateTab(dest);
     } else {
-      onNavigateTab('operations_overview');
+      if (onSelectPersona) {
+        onSelectPersona(personaId);
+      } else {
+        onNavigateTab('login');
+      }
     }
   };
 
@@ -336,21 +346,50 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
 
           {/* Quick Login & Direct Console Launch */}
           <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => handlePersonaLogin('enforcement_officer')}
-              className="flex items-center gap-2 px-4 py-2 bg-gov-navy hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
-            >
-              <LogIn className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Officer Login</span>
-            </button>
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    let dest = 'car_cockpit';
+                    if (user.role === 'enforcement_officer') dest = 'operations_overview';
+                    else if (user.role === 'system_admin') dest = 'traffic_dept';
+                    onNavigateTab(dest);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-gov-navy hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Open Console ({user.full_name ? user.full_name.split(' ')[0] : 'Officer'})</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                </button>
+                <button
+                  onClick={async () => {
+                    if (logout) await logout();
+                  }}
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                  title="Sign Out"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => onNavigateTab('login')}
+                  className="flex items-center gap-2 px-4 py-2 bg-gov-navy hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Officer Login</span>
+                </button>
 
-            <button
-              onClick={() => onNavigateTab('operations_overview')}
-              className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
-            >
-              <span>Launch Operations</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+                <button
+                  onClick={() => onNavigateTab('login')}
+                  className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-[#00875A] hover:bg-[#00744E] text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
+                >
+                  <span>Launch Operations</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </>
+            )}
           </div>
 
         </div>

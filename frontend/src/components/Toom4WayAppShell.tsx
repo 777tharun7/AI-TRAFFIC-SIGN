@@ -105,6 +105,7 @@ interface AppShellProps {
   onControl: (action: string, params?: any) => void;
   onReload: () => void;
   onNavigate?: (view: string) => void;
+  initialView?: string;
 }
 
 interface NavItemProps {
@@ -163,9 +164,10 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
   isWsConnected,
   onControl,
   onReload,
-  onNavigate
+  onNavigate,
+  initialView
 }) => {
-  const [currentView, setCurrentView] = useState<string>('home');
+  const [currentView, setCurrentView] = useState<string>(initialView || 'operations_overview');
   const [selectedPersona, setSelectedPersona] = useState<UserPersona>(PERSONAS[0]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -173,6 +175,12 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
   const [istTime, setIstTime] = useState<string>('');
 
   const { user, logout: authLogout } = useAuth();
+
+  useEffect(() => {
+    if (initialView && initialView !== currentView) {
+      setCurrentView(initialView);
+    }
+  }, [initialView]);
 
   // Live NTP-synchronized IST Clock (UTC+5:30)
   useEffect(() => {
@@ -195,6 +203,10 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
 
   // Navigation uses the passed onNavigate prop
   const handleNav = (view: string) => {
+    if (view === 'home') {
+      if (onNavigate) onNavigate('home');
+      return;
+    }
     setCurrentView(view);
     if (onNavigate) onNavigate(view);
     setMobileMenuOpen(false);
@@ -264,10 +276,10 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
         />
         <NavItem
           id="home"
-          label="Product Briefing"
+          label="Official Home Page"
           icon={Home}
-          badge="PUBLIC"
-          badgeStyle="bg-slate-100 text-slate-500 font-normal"
+          badge="PORTAL"
+          badgeStyle="bg-emerald-50 text-[#00875A] font-bold border border-emerald-200"
           active={currentView === 'home'}
           onClick={handleNav}
         />

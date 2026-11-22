@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import { 
   Navigation, Compass, Layers, CheckSquare, Square, Locate, Plus, Minus,
   AlertTriangle, Radio, ShieldCheck, MapPin, Gauge, Eye, Camera, Cpu, Cog,
-  ArrowRight, Sparkles, CheckCircle2, ChevronDown
+  ArrowRight, Sparkles, CheckCircle2, ChevronDown, Maximize2, Minimize2
 } from 'lucide-react';
 import { VehicleState, VirtualRIU, TrafficSignal, SignalState } from '../types';
 import { LivePerceptionPipelineDeck } from './LivePerceptionPipelineDeck';
@@ -16,18 +16,49 @@ interface Props {
   showPipelineDeck?: boolean;
 }
 
-// Hussain Sagar Lake & Connected Corridor Route Geometry (GeoJSON coordinates)
-const HYDERABAD_CORRIDOR_COORDS: [number, number][] = [
-  [78.4410, 17.4120], // 0. Banjara Hills (Taj Krishna Road No. 1)
-  [78.4500, 17.4180], // 1. Panjagutta Junction
-  [78.4550, 17.4220], // 2. Somajiguda (Raj Bhavan Rd)
-  [78.4630, 17.4270], // 3. Necklace Road Entrance (Khairatabad Flyover)
-  [78.4700, 17.4290], // 4. Necklace Road Waterfront (People's Plaza)
-  [78.4750, 17.4230], // 5. NTR Gardens / Tank Bund South
-  [78.4820, 17.4280], // 6. Tank Bund Waterfront Promenade
-  [78.4850, 17.4350], // 7. Kavadiguda / Sailing Club
-  [78.4865, 17.4410]  // 8. Secunderabad / Paradise Junction
-];
+// All Authentic Hyderabad Corridor Route Geometries (GeoJSON coordinates)
+export const HYDERABAD_ROUTES_COORDS: Record<string, [number, number][]> = {
+  route_hitec_gachibowli: [
+    [78.3750, 17.4520], // Cyber Gateway
+    [78.3808, 17.4502], // Cyber Towers Junction
+    [78.3818, 17.4450], // Mindspace Roundabout
+    [78.3780, 17.4380], // Inorbit Mall Road
+    [78.3712, 17.4325], // Bio-Diversity Park
+    [78.3620, 17.4260], // Gachibowli Flyover
+    [78.3540, 17.4215]  // ORR Interchange
+  ],
+  route_hussain_sagar_necklace: [
+    [78.4410, 17.4120], // 0. Banjara Hills (Taj Krishna Road No. 1)
+    [78.4500, 17.4180], // 1. Panjagutta Junction
+    [78.4550, 17.4220], // 2. Somajiguda (Raj Bhavan Rd)
+    [78.4630, 17.4270], // 3. Necklace Road Entrance (Khairatabad Flyover)
+    [78.4700, 17.4290], // 4. Necklace Road Waterfront (People's Plaza)
+    [78.4750, 17.4230], // 5. NTR Gardens / Tank Bund South
+    [78.4820, 17.4280], // 6. Tank Bund Waterfront Promenade
+    [78.4850, 17.4350], // 7. Kavadiguda / Sailing Club
+    [78.4865, 17.4410]  // 8. Secunderabad / Paradise Junction
+  ],
+  route_jubilee_cable_bridge: [
+    [78.4140, 17.4280],
+    [78.4080, 17.4310],
+    [78.4020, 17.4340],
+    [78.3905, 17.4338],
+    [78.3840, 17.4370]
+  ],
+  route_orr_expressway: [
+    [78.3450, 17.4600],
+    [78.3500, 17.4350],
+    [78.3580, 17.4180],
+    [78.3750, 17.3950]
+  ]
+};
+
+const getActiveRouteCoords = (routeId?: string): [number, number][] => {
+  if (routeId && HYDERABAD_ROUTES_COORDS[routeId]) {
+    return HYDERABAD_ROUTES_COORDS[routeId];
+  }
+  return HYDERABAD_ROUTES_COORDS.route_hitec_gachibowli;
+};
 
 export const RealNavigationMap: React.FC<Props> = ({
   vehicle,
@@ -55,9 +86,36 @@ export const RealNavigationMap: React.FC<Props> = ({
   // UI States
   const [mapMode, setMapMode] = useState<'2D' | '3D'>('2D');
   const [isFollowing, setIsFollowing] = useState<boolean>(true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [showLayersMenu, setShowLayersMenu] = useState<boolean>(false);
   const [viewFormat, setViewFormat] = useState<'interactive' | 'schematic'>('interactive');
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(prev => !prev);
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+        if (vehicle && isFollowing) {
+          mapRef.current.easeTo({
+            center: [vehicle.longitude, vehicle.latitude],
+            duration: 400
+          });
+        }
+      }
+    }, 150);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+        setTimeout(() => mapRef.current?.resize(), 150);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen, vehicle, isFollowing]);
 
   // Independent Layer Toggles
   const [layers, setLayers] = useState({
@@ -144,8 +202,8 @@ export const RealNavigationMap: React.FC<Props> = ({
           }
         ]
       },
-      center: [vehicle ? vehicle.longitude : 78.4410, vehicle ? vehicle.latitude : 17.4120],
-      zoom: 14.2,
+      center: [vehicle ? vehicle.longitude : 78.3808, vehicle ? vehicle.latitude : 17.4502],
+      zoom: 14.8,
       pitch: 0,
       bearing: 0
     });
@@ -172,6 +230,7 @@ export const RealNavigationMap: React.FC<Props> = ({
       map.resize();
 
       // 1. Add Planned Corridor Route Geometry
+      const activeCoords = getActiveRouteCoords(vehicle?.route_id);
       map.addSource('full-route', {
         type: 'geojson',
         data: {
@@ -179,7 +238,7 @@ export const RealNavigationMap: React.FC<Props> = ({
           properties: {},
           geometry: {
             type: 'LineString',
-            coordinates: HYDERABAD_CORRIDOR_COORDS
+            coordinates: activeCoords
           }
         }
       });
@@ -264,6 +323,23 @@ export const RealNavigationMap: React.FC<Props> = ({
       mapRef.current = null;
     };
   }, [viewFormat]);
+
+  // Dynamically update full corridor route if route changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const source = mapRef.current.getSource('full-route') as any;
+    if (source && source.setData) {
+      const activeCoords = getActiveRouteCoords(vehicle?.route_id);
+      source.setData({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'LineString',
+          coordinates: activeCoords
+        }
+      });
+    }
+  }, [vehicle?.route_id]);
 
   // Update 2D / 3D Mode
   useEffect(() => {
@@ -541,10 +617,14 @@ export const RealNavigationMap: React.FC<Props> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative">
+    <div className={`transition-all duration-300 ${
+      isFullscreen
+        ? 'fixed inset-0 z-[100] bg-[#0A111F] text-white flex flex-col w-screen h-screen overflow-hidden'
+        : 'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative'
+    }`}>
       
       {/* 1. TOP HEADER BAR (Exact Match with Reference: Live Hyderabad Corridor Simulation) */}
-      <div className="p-3 px-5 border-b border-slate-200 bg-white/95 backdrop-blur-md flex flex-wrap items-center justify-between gap-3 z-20">
+      <div className={`p-3 px-5 border-b border-slate-200 ${isFullscreen ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white/95'} backdrop-blur-md flex flex-wrap items-center justify-between gap-3 z-20`}>
         
         {/* Left: Corridor Title & Speed */}
         <div className="flex items-center gap-3">
@@ -731,12 +811,28 @@ export const RealNavigationMap: React.FC<Props> = ({
             )}
           </div>
 
+          {/* Fullscreen Map Monitor Mode Button */}
+          <button
+            onClick={toggleFullscreen}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold transition-all shadow-2xs cursor-pointer ${
+              isFullscreen
+                ? 'bg-blue-600 text-white border border-blue-700'
+                : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200'
+            }`}
+            title={isFullscreen ? "Exit Fullscreen (ESC)" : "Fullscreen Map Monitor"}
+          >
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5 text-blue-600" />}
+            <span className="hidden sm:inline font-mono text-xs">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Map'}</span>
+          </button>
+
         </div>
 
       </div>
 
       {/* 3. MAIN MAP CANVAS AREA */}
-      <div className="relative w-full h-[480px] min-h-[480px] bg-slate-100 overflow-hidden">
+      <div className={`relative w-full ${
+        isFullscreen ? 'flex-1 min-h-0 h-full' : 'h-[480px] min-h-[480px]'
+      } bg-slate-100 overflow-hidden`}>
         
         {viewFormat === 'interactive' ? (
           <div ref={mapContainer} className="w-full h-full min-h-[480px]" />
@@ -751,7 +847,47 @@ export const RealNavigationMap: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Right Minimal Zoom Controls */}
+        {/* Fullscreen Tactical Monitoring HUD */}
+        {isFullscreen && (
+          <div className="absolute top-4 left-4 right-20 z-30 flex flex-wrap items-center justify-between gap-3 bg-[#0A111F]/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 px-5 shadow-2xl text-white pointer-events-auto">
+            <div className="flex items-center gap-3">
+              <span className="px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold font-mono animate-pulse flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                CORRIDOR RADAR MONITOR
+              </span>
+              <div>
+                <span className="text-sm font-bold block leading-tight">{vehicle?.current_road || 'Hyderabad Connected Corridor'}</span>
+                <span className="text-[10px] text-slate-400 font-mono">GVID: TS 09 EV 4412 • High-Precision RTK GNSS</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <div className="bg-slate-900 px-3 py-1 rounded-xl border border-slate-700 text-center font-mono">
+                <span className="text-[9px] text-slate-400 block">SPEED</span>
+                <span className="text-base font-black text-cyan-400">{Math.round(currentSpeed)} km/h</span>
+              </div>
+              <div className="bg-slate-900 px-3 py-1 rounded-xl border border-slate-700 text-center font-mono">
+                <span className="text-[9px] text-slate-400 block">VEHICLE STATE</span>
+                <span className="text-xs font-bold text-emerald-400">{vehicle?.behavior_state || 'MOVING'}</span>
+              </div>
+              <div className="bg-slate-900 px-3 py-1 rounded-xl border border-slate-700 text-center font-mono">
+                <span className="text-[9px] text-slate-400 block">STOP LINE</span>
+                <span className="text-xs font-bold text-amber-400">
+                  {vehicle?.distance_to_stop_line_m ? `${vehicle.distance_to_stop_line_m}m` : 'Clear'}
+                </span>
+              </div>
+              <button
+                onClick={toggleFullscreen}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 transition-all text-xs cursor-pointer shadow-lg active:scale-95 ml-2"
+              >
+                <Minimize2 className="w-4 h-4" />
+                <span>Exit Fullscreen (ESC)</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Right Minimal Zoom & Action Controls */}
         <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
           <div className="flex flex-col rounded-xl bg-white/95 backdrop-blur-md border border-slate-200 shadow-md overflow-hidden text-slate-700">
             <button 
@@ -773,10 +909,22 @@ export const RealNavigationMap: React.FC<Props> = ({
 
           <button
             onClick={handleRecenter}
-            className="p-2 bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-slate-200 text-blue-600 hover:bg-blue-50 transition-colors"
-            title="Recenter Vehicle"
+            className={`p-2 backdrop-blur-md rounded-xl shadow-md border transition-all cursor-pointer ${
+              isFollowing 
+                ? 'bg-blue-600 text-white border-blue-700' 
+                : 'bg-white/95 text-blue-600 border-slate-200 hover:bg-blue-50'
+            }`}
+            title="Recenter & Follow Vehicle"
           >
-            <Locate className="w-4 h-4" />
+            <Locate className={`w-4 h-4 ${isFollowing ? 'animate-pulse' : ''}`} />
+          </button>
+
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-slate-200 text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
+            title={isFullscreen ? "Exit Fullscreen (ESC)" : "Fullscreen Map Monitor"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
         </div>
 

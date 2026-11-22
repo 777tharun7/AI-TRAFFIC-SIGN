@@ -118,7 +118,19 @@ export const LoginView: React.FC<AuthProps> = ({ onNavigate, onLoginSuccess }) =
         }}
       />
 
-      <div className="w-full max-w-md relative z-10 space-y-6">
+      <div className="w-full max-w-md relative z-10 space-y-4">
+
+        {/* Back to Official Home Page link */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => onNavigate('home')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold border border-white/10 transition-all cursor-pointer backdrop-blur-md active:scale-95"
+          >
+            <ChevronLeft className="w-4 h-4 text-emerald-400" />
+            <span>← Official Home Page</span>
+          </button>
+          <span className="text-[11px] font-mono text-emerald-400/90 font-semibold">Gov. of Telangana</span>
+        </div>
 
         {/* Floating Glassmorphic Container */}
         <div className="bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6 hover:border-white/20 transition-all duration-300">
