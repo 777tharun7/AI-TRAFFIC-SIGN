@@ -161,10 +161,11 @@ export const LiveExperienceStudio: React.FC<Props> = ({
   const [activeChallan, setActiveChallan] = useState<ChallanRecord | null>(null);
   const [cameraFlash, setCameraFlash] = useState<boolean>(false);
   const [turnIndicator, setTurnIndicator] = useState<'none' | 'left' | 'right'>('none');
+  const [isSimRunning, setIsSimRunning] = useState<boolean>(false);
 
   // Game/Simulation Mutable State Ref (for 60fps canvas loop)
   const sim = useRef({
-    isRunning: true,
+    isRunning: false,
     simTime: 0,
     // Player Car Dynamics
     carDist: 40,           // meters along corridor
@@ -344,12 +345,26 @@ export const LiveExperienceStudio: React.FC<Props> = ({
     setActiveChallan(null);
   }, []);
 
+  const handleTogglePlay = useCallback(() => {
+    const next = !sim.current.isRunning;
+    sim.current.isRunning = next;
+    setIsSimRunning(next);
+    if (next) {
+      initAudio();
+      playBeep(520, 'sine', 0.1);
+    }
+  }, [initAudio, playBeep]);
+
   // Keyboard controls listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return;
 
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        if (!sim.current.isRunning) {
+          sim.current.isRunning = true;
+          setIsSimRunning(true);
+        }
         sim.current.isAccelerating = true;
         sim.current.isBraking = false;
         initAudio();
@@ -378,7 +393,10 @@ export const LiveExperienceStudio: React.FC<Props> = ({
         sim.current.isHandbrake = true;
         sim.current.isBraking = true;
       } else if (e.key === 'p' || e.key === 'P') {
-        sim.current.isRunning = !sim.current.isRunning;
+        const next = !sim.current.isRunning;
+        sim.current.isRunning = next;
+        setIsSimRunning(next);
+        if (next) initAudio();
       }
     };
 
@@ -1361,6 +1379,28 @@ export const LiveExperienceStudio: React.FC<Props> = ({
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
+                onClick={handleTogglePlay}
+                className={`px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isSimRunning
+                    ? 'bg-amber-500/10 text-amber-700 border-amber-300 hover:bg-amber-500/20'
+                    : 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-500 shadow-md shadow-emerald-500/20'
+                }`}
+              >
+                {isSimRunning ? (
+                  <>
+                    <Pause className="w-3.5 h-3.5 fill-amber-600 text-amber-600" />
+                    <span>Pause</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-white text-white" />
+                    <span>Start Driving</span>
+                  </>
+                )}
+              </button>
+
+              <button
                 onClick={() => setShowCertificate(true)}
                 className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-100 transition-colors cursor-pointer"
               >
@@ -1377,6 +1417,39 @@ export const LiveExperienceStudio: React.FC<Props> = ({
               className="w-full h-full cursor-crosshair"
               style={{ touchAction: 'none' }}
             />
+
+            {/* Paused Start Driving Overlay */}
+            {!isSimRunning && (
+              <div className="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-slate-900/95 border border-emerald-500/40 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl space-y-4 animate-fadeIn">
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <Play className="w-8 h-8 fill-emerald-400 text-emerald-400 ml-1" />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold block">
+                      SIMULATOR PAUSED &bull; STANDBY
+                    </span>
+                    <h3 className="text-xl font-black text-white">Live Experience Studio</h3>
+                    <p className="text-xs text-slate-300">
+                      60 FPS Physics Driving Engine &amp; V2X 108 Ambulance Preemption
+                    </p>
+                  </div>
+                  <div className="p-3 bg-black/60 rounded-xl border border-white/10 text-[11px] font-mono text-slate-300 text-left space-y-1">
+                    <div><b className="text-emerald-400">W / ↑</b> Accelerate &bull; <b className="text-amber-400">S / ↓</b> Brake</div>
+                    <div><b className="text-cyan-400">A / D / ← / →</b> Steer Lane Left / Right</div>
+                    <div><b className="text-rose-400">Space</b> Emergency Handbrake &bull; <b className="text-slate-400">P</b> Pause/Resume</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleTogglePlay}
+                    className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black text-sm transition-all cursor-pointer shadow-lg shadow-emerald-600/40 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Play className="w-4 h-4 fill-white text-white" />
+                    <span>CLICK TO START DRIVING</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Live Mission Objectives HUD Card (Top-Left of Screen) */}
             <div className="absolute top-4 left-4 z-20 bg-slate-950/85 backdrop-blur-md border border-slate-800 rounded-2xl p-3 shadow-2xl text-white max-w-xs space-y-1.5 pointer-events-none">
