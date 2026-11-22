@@ -146,7 +146,8 @@ export const StateInspectorDrawer: React.FC<Props> = ({
       {/* Floating State Inspector Toggle Button - Positioned docked left of workspace to avoid covering cards */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 left-5 lg:left-72 z-30 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono text-[11px] font-bold shadow-lg backdrop-blur-md transition-all hover:scale-102 active:scale-98 cursor-pointer ring-1 ring-emerald-500/20"
+        aria-label="Open System States Inventory (80+ States)"
+        className="fixed bottom-4 left-5 lg:left-72 z-20 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-900 text-emerald-400 border border-emerald-500/30 font-mono text-[11px] font-bold shadow-lg backdrop-blur-md transition-all hover:scale-102 active:scale-98 cursor-pointer ring-1 ring-emerald-500/20"
       >
         <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
         <span>System States (80+ Inventory)</span>

@@ -153,129 +153,112 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+interface NavItemProps {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  badgeStyle?: string;
+  active: boolean;
+  onClick: (id: string) => void;
+  ariaLabel?: string;
+}
+
+const NavItem: React.FC<NavItemProps> = ({
+  id,
+  label,
+  icon: Icon,
+  badge,
+  badgeStyle,
+  active,
+  onClick,
+  ariaLabel,
+}) => (
+  <button
+    type="button"
+    onClick={() => onClick(id)}
+    aria-label={ariaLabel || label}
+    aria-current={active ? 'page' : undefined}
+    className={`w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
+      active
+        ? 'bg-gov-navy text-white font-semibold shadow-xs'
+        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
+    }`}
+  >
+    <div className="flex items-center gap-3">
+      <Icon className={`w-4 h-4 ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
+      <span>{label}</span>
+    </div>
+    {badge && (
+      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+        active
+          ? 'bg-white/20 text-white'
+          : badgeStyle || 'bg-slate-100 text-slate-600'
+      }`}>
+        {badge}
+      </span>
+    )}
+  </button>
+);
+
   const renderNavLinks = () => (
     <>
       {/* 1. PRIMARY OPERATIONS */}
       <nav className="space-y-1">
-        <button
-          onClick={() => handleNav('operations_overview')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'operations_overview'
-              ? 'bg-[#0A2540] text-white font-semibold shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Building2 className={`w-4 h-4 ${currentView === 'operations_overview' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Command Overview</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-            currentView === 'operations_overview'
-              ? 'bg-emerald-500 text-white'
-              : 'bg-emerald-100 text-emerald-800'
-          }`}>
-            LIVE
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('tharun_demo')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'tharun_demo'
-              ? 'bg-[#0A2540] text-white font-semibold shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Compass className={`w-4 h-4 ${currentView === 'tharun_demo' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Tharun's Story</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-            currentView === 'tharun_demo'
-              ? 'bg-white/20 text-white border border-white/30'
-              : 'bg-indigo-100 text-indigo-800'
-          }`}>
-            [8 SCENES]
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('road_intelligence')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'road_intelligence'
-              ? 'bg-[#0A2540] text-white font-semibold shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Navigation className={`w-4 h-4 ${currentView === 'road_intelligence' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Live Intelligence</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-            currentView === 'road_intelligence' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            [4 JUNC]
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('car_cockpit')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'car_cockpit'
-              ? 'bg-[#0A2540] text-white font-semibold shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Car className={`w-4 h-4 ${currentView === 'car_cockpit' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Vehicle Experience</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-            currentView === 'car_cockpit' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-          }`}>
-            GLOSA
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('home')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'home'
-              ? 'bg-[#0A2540] text-white font-semibold shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Home className={`w-4 h-4 ${currentView === 'home' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Product Briefing</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-medium ${
-            currentView === 'home' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-          }`}>
-            PUBLIC
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('traffic_dept')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'traffic_dept'
-              ? 'bg-[#0A2540] text-white font-semibold shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Activity className={`w-4 h-4 ${currentView === 'traffic_dept' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Corridors & EVP</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-            currentView === 'traffic_dept'
-              ? 'bg-rose-500 text-white'
-              : 'bg-rose-100 text-rose-800'
-          }`}>
-            [3 ACTIVE]
-          </span>
-        </button>
+        <NavItem
+          id="operations_overview"
+          label="Command Overview"
+          icon={Building2}
+          badge="LIVE"
+          badgeStyle="bg-emerald-100 text-emerald-800"
+          active={currentView === 'operations_overview'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="tharun_demo"
+          label="Tharun's Story"
+          icon={Compass}
+          badge="[8 SCENES]"
+          badgeStyle="bg-indigo-100 text-indigo-800"
+          active={currentView === 'tharun_demo'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="road_intelligence"
+          label="Live Intelligence"
+          icon={Navigation}
+          badge="[4 JUNC]"
+          badgeStyle="bg-slate-100 text-slate-600"
+          active={currentView === 'road_intelligence'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="car_cockpit"
+          label="Vehicle Experience"
+          icon={Car}
+          badge="GLOSA"
+          badgeStyle="bg-emerald-50 text-emerald-700 border border-emerald-200"
+          active={currentView === 'car_cockpit'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="home"
+          label="Product Briefing"
+          icon={Home}
+          badge="PUBLIC"
+          badgeStyle="bg-slate-100 text-slate-500 font-normal"
+          active={currentView === 'home'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="traffic_dept"
+          label="Corridors & EVP"
+          icon={Activity}
+          badge="[3 ACTIVE]"
+          badgeStyle="bg-rose-100 text-rose-800"
+          active={currentView === 'traffic_dept'}
+          onClick={handleNav}
+        />
       </nav>
 
       {/* 2. VEHICLES & ENFORCEMENT */}
@@ -283,65 +266,33 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           Vehicles & Enforcement
         </div>
-
-        <button
-          onClick={() => handleNav('vehicle_registry')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'vehicle_registry'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Car className={`w-4 h-4 ${currentView === 'vehicle_registry' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Vehicle Registry</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            currentView === 'vehicle_registry' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            [1.4M TS]
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('gvid_registry')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'gvid_registry'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Cpu className={`w-4 h-4 ${currentView === 'gvid_registry' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>GVID Hardware Hub</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            currentView === 'gvid_registry' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            [V2X]
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('evidence_workflow')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'evidence_workflow'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <FileCheck className={`w-4 h-4 ${currentView === 'evidence_workflow' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Evidence & e-Challan</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-            currentView === 'evidence_workflow'
-              ? 'bg-amber-400 text-slate-900'
-              : 'bg-amber-100 text-amber-900'
-          }`}>
-            [9]
-          </span>
-        </button>
+        <NavItem
+          id="vehicle_registry"
+          label="Vehicle Registry"
+          icon={Car}
+          badge="[1.4M TS]"
+          badgeStyle="bg-slate-100 text-slate-600"
+          active={currentView === 'vehicle_registry'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="gvid_registry"
+          label="GVID Hardware Hub"
+          icon={Cpu}
+          badge="[V2X]"
+          badgeStyle="bg-slate-100 text-slate-600"
+          active={currentView === 'gvid_registry'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="evidence_workflow"
+          label="Evidence & e-Challan"
+          icon={FileCheck}
+          badge="[9]"
+          badgeStyle="bg-amber-100 text-amber-900"
+          active={currentView === 'evidence_workflow'}
+          onClick={handleNav}
+        />
       </div>
 
       {/* 3. CITIZEN & TRANSIT */}
@@ -349,44 +300,24 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           Citizen & Transit
         </div>
-
-        <button
-          onClick={() => handleNav('citizen_portal')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'citizen_portal'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <User className={`w-4 h-4 ${currentView === 'citizen_portal' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Citizen Portal & Pay</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            currentView === 'citizen_portal' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            ZERO-FEE
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('fleet_operations')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'fleet_operations'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Bus className={`w-4 h-4 ${currentView === 'fleet_operations' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Public Transit Fleet</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
-            currentView === 'fleet_operations' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-900'
-          }`}>
-            [42 BUSES]
-          </span>
-        </button>
+        <NavItem
+          id="citizen_portal"
+          label="Citizen Portal & Pay"
+          icon={User}
+          badge="ZERO-FEE"
+          badgeStyle="bg-slate-100 text-slate-600"
+          active={currentView === 'citizen_portal'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="fleet_operations"
+          label="Public Transit Fleet"
+          icon={Bus}
+          badge="[42 BUSES]"
+          badgeStyle="bg-amber-100 text-amber-900"
+          active={currentView === 'fleet_operations'}
+          onClick={handleNav}
+        />
       </div>
 
       {/* 4. INTELLIGENCE LAB */}
@@ -394,101 +325,51 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           Intelligence Lab
         </div>
-
-        <button
-          onClick={() => handleNav('camera_tracker')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'camera_tracker'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Camera className={`w-4 h-4 ${currentView === 'camera_tracker' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Live Camera & Tracking</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            currentView === 'camera_tracker' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            HD 4K
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('cvdv')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'cvdv'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Cpu className={`w-4 h-4 ${currentView === 'cvdv' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>AI Vision Lab</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            currentView === 'cvdv' ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-700'
-          }`}>
-            [YOLOv8]
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('v_riu')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'v_riu'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Radio className={`w-4 h-4 ${currentView === 'v_riu' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-            <span>Virtual RIU</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            currentView === 'v_riu' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            [4 NODES]
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('decision_engine')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'decision_engine'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Zap className={`w-4 h-4 ${currentView === 'decision_engine' ? 'text-white' : 'text-[#00875A]'}`} />
-            <span>Decision Engine (Pt 6)</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            currentView === 'decision_engine' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            [10ms]
-          </span>
-        </button>
-
-        <button
-          onClick={() => handleNav('ui_ux_debugger')}
-          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'ui_ux_debugger'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Layers className={`w-4 h-4 ${currentView === 'ui_ux_debugger' ? 'text-white' : 'text-emerald-600'}`} />
-            <span>UI/UX Position Debugger</span>
-          </div>
-          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            currentView === 'ui_ux_debugger' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            [ISO]
-          </span>
-        </button>
+        <NavItem
+          id="camera_tracker"
+          label="Live Camera & Tracking"
+          icon={Camera}
+          badge="HD 4K"
+          badgeStyle="bg-slate-100 text-slate-600"
+          active={currentView === 'camera_tracker'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="cvdv"
+          label="AI Vision Lab"
+          icon={Cpu}
+          badge="[YOLOv8]"
+          badgeStyle="bg-indigo-50 text-indigo-700"
+          active={currentView === 'cvdv'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="v_riu"
+          label="Virtual RIU"
+          icon={Radio}
+          badge="[4 NODES]"
+          badgeStyle="bg-slate-100 text-slate-600"
+          active={currentView === 'v_riu'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="decision_engine"
+          label="Decision Engine (Pt 6)"
+          icon={Zap}
+          badge="[10ms]"
+          badgeStyle="bg-slate-100 text-slate-600"
+          active={currentView === 'decision_engine'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="ui_ux_debugger"
+          label="UI/UX Position Debugger"
+          icon={Layers}
+          badge="[ISO]"
+          badgeStyle="bg-slate-100 text-slate-600"
+          active={currentView === 'ui_ux_debugger'}
+          onClick={handleNav}
+        />
       </div>
 
       {/* 5. RESEARCH */}
@@ -496,30 +377,20 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           Research
         </div>
-
-        <button
-          onClick={() => handleNav('literature_research')}
-          className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'literature_research'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <BookOpen className={`w-4 h-4 ${currentView === 'literature_research' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-          <span>Literature & Research</span>
-        </button>
-
-        <button
-          onClick={() => handleNav('about_portfolio')}
-          className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'about_portfolio'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <Layers className={`w-4 h-4 ${currentView === 'about_portfolio' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-          <span>System Architecture</span>
-        </button>
+        <NavItem
+          id="literature_research"
+          label="Literature & Research"
+          icon={BookOpen}
+          active={currentView === 'literature_research'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="about_portfolio"
+          label="System Architecture"
+          icon={Layers}
+          active={currentView === 'about_portfolio'}
+          onClick={handleNav}
+        />
       </div>
 
       {/* 6. SYSTEM */}
@@ -527,26 +398,20 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
         <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 pb-1">
           System
         </div>
-
-        <button
-          onClick={() => handleNav('system_states')}
-          className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer group ${
-            currentView === 'system_states'
-              ? 'bg-[#0A2540] text-white font-semibold'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
-          }`}
-        >
-          <Settings className={`w-4 h-4 ${currentView === 'system_states' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'}`} />
-          <span>Settings & States</span>
-        </button>
-
-        <button
-          onClick={() => handleNav('terms')}
-          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 transition-all cursor-pointer"
-        >
-          <HelpCircle className="w-4 h-4 text-slate-400" />
-          <span>Help & Legal</span>
-        </button>
+        <NavItem
+          id="system_states"
+          label="Settings & States"
+          icon={Settings}
+          active={currentView === 'system_states'}
+          onClick={handleNav}
+        />
+        <NavItem
+          id="terms"
+          label="Help & Legal"
+          icon={HelpCircle}
+          active={currentView === 'terms'}
+          onClick={handleNav}
+        />
       </div>
     </>
   );
@@ -633,9 +498,10 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
               <input 
                 type="text"
                 placeholder="Search road event, vehicle, plate, or junction..."
+                aria-label="Search road event, vehicle, plate, or junction"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 bg-[#F8FAFC] hover:bg-slate-100/80 focus:bg-white text-xs rounded-xl border border-[#E2E8F0] focus:outline-none focus:ring-2 focus:ring-[#0A2540]/20 focus:border-[#0A2540] text-slate-900 transition-colors"
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-gov-navy/20 focus:border-gov-navy text-slate-900 transition-colors"
               />
             </div>
           </div>
@@ -671,12 +537,16 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
             </div>
 
             {/* Alert Notifications */}
-            <div className="relative p-2 text-slate-600 hover:text-slate-900 cursor-pointer rounded-xl hover:bg-slate-100">
+            <button
+              type="button"
+              aria-label="3 Unread Alert Notifications"
+              className="relative p-2 text-slate-600 hover:text-slate-900 cursor-pointer rounded-xl hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-gov-navy/20"
+            >
               <Bell className="w-4 h-4" />
               <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center">
                 3
               </span>
-            </div>
+            </button>
 
             {/* Interactive 4-Tier Role Switcher & Profile Dropdown */}
             <div className="relative">
@@ -834,7 +704,7 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
         )}
 
         {/* View Router Main Body */}
-        <main className="flex-1">
+        <main id="main-content" className="flex-1">
           {currentView === 'operations_overview' && (
             <div className="p-6 max-w-7xl mx-auto">
               <TrafficOperationsOverview onNavigateTab={handleNav} />

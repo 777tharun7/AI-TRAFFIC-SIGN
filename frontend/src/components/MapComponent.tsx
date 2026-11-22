@@ -35,10 +35,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           'osm-tiles': {
             type: 'raster',
             tiles: [
-              'https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png'
+              'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
             ],
             tileSize: 256,
-            attribution: '© OpenStreetMap contributors, CartoDB'
+            attribution: '© Esri, OpenStreetMap'
           }
         },
         layers: [

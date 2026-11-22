@@ -10,6 +10,19 @@
   }
 }
 
+/* Consolidated 3-Tier Card Design System */
+.card-default {
+  @apply bg-white border border-slate-200/90 rounded-2xl shadow-sm;
+}
+
+.card-elevated {
+  @apply bg-white border border-slate-200/90 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer;
+}
+
+.card-hud {
+  @apply bg-[#0A111F] border border-slate-800 rounded-2xl shadow-xl text-white;
+}
+
 /* WCAG 2.1 AA Interactive Card System */
 .interactive-card {
   transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease, border-color 180ms ease;
@@ -24,6 +37,16 @@
 .interactive-card:focus-visible {
   outline: 2px solid #0A2540;
   outline-offset: 2px;
+}
+
+/* Accessibility: Support users with vestibular sensitivity */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Mobility & Civic Design Tokens */

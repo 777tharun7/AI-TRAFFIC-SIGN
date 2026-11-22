@@ -4,7 +4,7 @@ import {
   Zap, Layers, BookOpen, CheckCircle2, ChevronRight, 
   Activity, Sparkles, Navigation, Gauge, Eye, Sliders,
   HelpCircle, ExternalLink, AlertTriangle, Crosshair, Check,
-  Download, Maximize2, FileText, Compass, Award, Building2
+  Download, Maximize2, FileText, Compass, Award, Building2, Camera, Car
 } from 'lucide-react';
 import { RealNavigationMap } from './RealNavigationMap';
 import { RoadSenseLogo } from './RoadSenseLogo';
@@ -105,17 +105,21 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
 
           {/* Hardware & Protocol Chips */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs font-mono text-slate-500">
-            <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-              ⚡ Edge: Jetson Orin Nano (14.8 ms p50)
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+              <Cpu className="w-3.5 h-3.5 text-amber-600" />
+              <span>Edge: Jetson Orin Nano (14.8 ms p50)</span>
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-              📡 DSRC 5.9 GHz / C-V2X Release 16
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+              <Radio className="w-3.5 h-3.5 text-blue-600" />
+              <span>DSRC 5.9 GHz / C-V2X Release 16</span>
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-              📍 Dual-Band L1/L5 RTK (±0.4 m CEP)
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+              <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Dual-Band L1/L5 RTK (±0.4 m CEP)</span>
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-              📜 IRC:67-2012 Certified
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
+              <Award className="w-3.5 h-3.5 text-indigo-600" />
+              <span>IRC:67-2012 Certified</span>
             </span>
           </div>
 
@@ -631,28 +635,33 @@ export const Toom4WayPublicHome: React.FC<Props> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
           {[
-            { step: '1. Ingest', desc: 'Dual-stream camera feeds & 5.9 GHz V2X packets', icon: '📷' },
-            { step: '2. Detect', desc: 'ROI tensor classification across 43 IRC sign classes', icon: '🧠' },
-            { step: '3. Localize', desc: 'RTK GNSS + 6-axis IMU corridor path projection', icon: '📍' },
-            { step: '4. Validate', desc: '±30° cone heading gating & lane association', icon: '🛡️' },
-            { step: '5. Fuse', desc: 'Resolves camera vs V2X discrepancies safely', icon: '⚡' },
-            { step: '6. Decide', desc: 'Calculates stopping distance (d_stop) & GLOSA speed', icon: '🎯' },
-            { step: '7. Deliver', desc: 'Head-up display alerts & speed governor limits', icon: '🚗' }
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              onClick={() => setSelectedProcessStep(idx + 1)}
-              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                selectedProcessStep === idx + 1
-                  ? 'bg-white border-[#00875A] shadow-md ring-2 ring-[#00875A]/20'
-                  : 'bg-white border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              <div className="text-xl mb-2">{item.icon}</div>
-              <div className="font-bold text-xs text-slate-900">{item.step}</div>
-              <div className="text-[11px] text-slate-500 mt-1 leading-snug">{item.desc}</div>
-            </div>
-          ))}
+            { step: '1. Ingest', desc: 'Dual-stream camera feeds & 5.9 GHz V2X packets', icon: Camera },
+            { step: '2. Detect', desc: 'ROI tensor classification across 43 IRC sign classes', icon: Cpu },
+            { step: '3. Localize', desc: 'RTK GNSS + 6-axis IMU corridor path projection', icon: MapPin },
+            { step: '4. Validate', desc: '±30° cone heading gating & lane association', icon: ShieldCheck },
+            { step: '5. Fuse', desc: 'Resolves camera vs V2X discrepancies safely', icon: Zap },
+            { step: '6. Decide', desc: 'Calculates stopping distance (d_stop) & GLOSA speed', icon: Crosshair },
+            { step: '7. Deliver', desc: 'Head-up display alerts & speed governor limits', icon: Car }
+          ].map((item, idx) => {
+            const IconComponent = item.icon;
+            return (
+              <div
+                key={idx}
+                onClick={() => setSelectedProcessStep(idx + 1)}
+                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                  selectedProcessStep === idx + 1
+                    ? 'bg-white border-[#00875A] shadow-md ring-2 ring-[#00875A]/20'
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center mb-2 text-[#00875A]">
+                  <IconComponent className="w-4 h-4" />
+                </div>
+                <div className="font-bold text-xs text-slate-900">{item.step}</div>
+                <div className="text-[11px] text-slate-500 mt-1 leading-snug">{item.desc}</div>
+              </div>
+            );
+          })}
         </div>
       </section>
 

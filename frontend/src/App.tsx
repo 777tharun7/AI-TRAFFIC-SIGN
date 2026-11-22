@@ -81,7 +81,14 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB] text-[#0F172A] font-sans relative antialiased selection:bg-[#00875A] selection:text-white">
+    <div className="min-h-screen bg-gov-canvas text-gov-slate font-sans relative antialiased selection:bg-[#00875A] selection:text-white">
+      {/* Skip to Main Content Link for WCAG 2.1 AA Keyboard Accessibility */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-gov-navy focus:text-white focus:rounded-xl focus:shadow-xl focus:font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400"
+      >
+        Skip to main content
+      </a>
       {/* 1. Global Network / Offline Alert Banner */}
       <NetworkStatusBanner
         isWsConnected={isWsConnected}

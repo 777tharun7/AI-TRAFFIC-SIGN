@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Cpu, Database, Radio, MapPin, Brain, Car, Gauge, 
   CheckCircle2, ArrowRight, ShieldCheck, Zap, Activity,
-  Layers, Terminal, FileCode2, ExternalLink, Workflow
+  Layers, Terminal, FileCode2, ExternalLink, Workflow, Camera, FileText
 } from 'lucide-react';
 
 export const AboutPortfolioView: React.FC = () => {
@@ -34,15 +34,12 @@ export const AboutPortfolioView: React.FC = () => {
             <h3 className="text-base font-bold text-white">Full RoadSense AI Project Presentation</h3>
             <p className="text-xs text-slate-300">Complete explanation of project motivation, architecture pipeline, model accuracies, and future roadmap.</p>
           </div>
-          <a
-            href="https://canva.link/f4unp9d63d98kzb"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 whitespace-nowrap cursor-pointer shrink-0"
-          >
-            <span>Open Canva PPT Deck</span>
-            <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
-          </a>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold border border-emerald-500/40">
+              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+              <span>System Architecture Master Specification</span>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -225,7 +222,7 @@ export const AboutPortfolioView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div className="p-3 rounded-xl bg-white border border-rose-200 space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                      <span className="text-sm">📹</span>
+                      <Camera className="w-4 h-4 text-rose-600" />
                       <span>Camera / Live Video Feed</span>
                     </div>
                     <p className="text-[11px] text-slate-600 leading-tight">
@@ -235,7 +232,7 @@ export const AboutPortfolioView: React.FC = () => {
 
                   <div className="p-3 rounded-xl bg-white border border-rose-200 space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                      <span className="text-sm">📡</span>
+                      <Radio className="w-4 h-4 text-emerald-600" />
                       <span>V2X / SPaT Infrastructure Input</span>
                     </div>
                     <p className="text-[11px] text-slate-600 leading-tight">

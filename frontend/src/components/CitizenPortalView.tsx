@@ -545,12 +545,12 @@ Vehicles Rules, 1989 (as amended). Valid without physical signature."
                         {downloadingChallanId === ch.challan_id ? (
                           <>
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Generating PDF...</span>
+                            <span>Exporting Record...</span>
                           </>
                         ) : (
                           <>
                             <Download className="w-3.5 h-3.5" />
-                            <span>Download Certified e-Challan Receipt (PDF)</span>
+                            <span>Download Certified Electronic Record (Sec 167A)</span>
                           </>
                         )}
                       </button>
