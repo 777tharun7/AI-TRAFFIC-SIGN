@@ -3,23 +3,31 @@ import {
   Navigation, Compass, Radio, AlertTriangle, 
   ShieldCheck, Zap, ArrowUp, ArrowDown, RotateCcw, 
   Play, Pause, Gauge, BatteryCharging, MapPin,
-  Sun, Moon, Shield, Info, Battery, Sparkles, CheckCircle2
+  Sun, Moon, Shield, Info, Battery, Sparkles, CheckCircle2,
+  Map as MapIcon, LayoutDashboard, SplitSquareVertical
 } from 'lucide-react';
-import { VehicleState } from '../types';
+import { VehicleState, VirtualRIU, TrafficSignal } from '../types';
+import { RealNavigationMap } from './RealNavigationMap';
 
 interface CarCockpitHMIProps {
   vehicle: VehicleState | null;
   onControl: (action: string, params?: any) => void;
   routes: any[];
+  signals?: TrafficSignal[];
+  rius?: VirtualRIU[];
 }
 
 export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
   vehicle,
   onControl,
-  routes
+  routes,
+  signals = [],
+  rius = []
 }) => {
   // Cockpit Lighting Mode: Night Tactical vs Day Contrast
   const [lightingMode, setLightingMode] = useState<'night' | 'day'>('night');
+  // Cockpit Display Mode: Pure Cluster vs Split with Navigation Map vs Full Map
+  const [cockpitViewMode, setCockpitViewMode] = useState<'cluster' | 'split' | 'map'>('split');
 
   if (!vehicle) {
     return (
@@ -84,8 +92,51 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
               <span className="text-emerald-400 font-bold hidden sm:inline">• Connected GVID v2.4</span>
             </div>
 
-            {/* Lighting Mode Toggle & Compass */}
-            <div className="flex items-center gap-3">
+            {/* Lighting Mode Toggle, Cockpit View Switcher & Compass */}
+            <div className="flex items-center gap-2.5">
+              {/* Cockpit Layout Mode Toggle (HUD vs Split Map vs Full Map) */}
+              <div className="flex items-center p-0.5 rounded-full bg-slate-900 border border-white/10 text-[10px] font-mono">
+                <button
+                  type="button"
+                  onClick={() => setCockpitViewMode('cluster')}
+                  className={`px-2.5 py-1 rounded-full transition-all flex items-center gap-1 cursor-pointer ${
+                    cockpitViewMode === 'cluster'
+                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Cluster Only"
+                >
+                  <LayoutDashboard className="w-3 h-3" />
+                  <span className="hidden sm:inline">HUD</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCockpitViewMode('split')}
+                  className={`px-2.5 py-1 rounded-full transition-all flex items-center gap-1 cursor-pointer ${
+                    cockpitViewMode === 'split'
+                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="HUD + Live Corridor Map"
+                >
+                  <SplitSquareVertical className="w-3 h-3" />
+                  <span className="hidden sm:inline">Split Map</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCockpitViewMode('map')}
+                  className={`px-2.5 py-1 rounded-full transition-all flex items-center gap-1 cursor-pointer ${
+                    cockpitViewMode === 'map'
+                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Full Corridor Navigation Map"
+                >
+                  <MapIcon className="w-3 h-3" />
+                  <span className="hidden sm:inline">Full Map</span>
+                </button>
+              </div>
+
               {/* Cockpit Lighting Mode Toggle */}
               <button
                 type="button"
@@ -100,25 +151,39 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
                 {isNight ? (
                   <>
                     <Moon className="w-3.5 h-3.5 text-indigo-300" />
-                    <span>Night Tactical</span>
+                    <span className="hidden md:inline">Night Tactical</span>
                   </>
                 ) : (
                   <>
                     <Sun className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Day Contrast</span>
+                    <span className="hidden md:inline">Day Contrast</span>
                   </>
                 )}
               </button>
 
-              <div className="flex items-center gap-1 text-cyan-400 font-bold bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+              <div className="flex items-center gap-1 text-cyan-400 font-bold bg-white/5 px-2.5 py-1 rounded-lg border border-white/10 font-mono text-xs">
                 <Compass className="w-3.5 h-3.5" />
                 <span>{Math.round(vehicle.heading)}°</span>
               </div>
             </div>
           </div>
 
-          {/* Cockpit Core: 3-Column Ergonomic Cluster */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center py-6">
+          {cockpitViewMode === 'map' ? (
+            <div className="py-4">
+              <div className="rounded-2xl overflow-hidden border border-slate-700/80 shadow-2xl">
+                <RealNavigationMap
+                  vehicle={vehicle}
+                  rius={rius}
+                  signals={signals}
+                  onControl={onControl}
+                  showPipelineDeck={false}
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Cockpit Core: 3-Column Ergonomic Cluster */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center py-6">
             
             {/* Left 4 Cols: Tactical Road & Corridor Guidance */}
             <div className="md:col-span-4 space-y-3.5">
@@ -459,6 +524,32 @@ export const CarCockpitHMI: React.FC<CarCockpitHMIProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Embedded Live Corridor Navigation Map (Split Mode) */}
+          {cockpitViewMode === 'split' && (
+            <div className="pt-4 border-t border-white/10 space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-mono text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                  Real-Time Connected Corridor Pilot Navigation
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  Vehicle Tracking: Active
+                </span>
+              </div>
+              <div className="rounded-2xl overflow-hidden border border-slate-700/80 shadow-2xl">
+                <RealNavigationMap
+                  vehicle={vehicle}
+                  rius={rius}
+                  signals={signals}
+                  onControl={onControl}
+                  showPipelineDeck={false}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
           {/* Bottom Driver Controls (ISO 15005 Compliant 48px Touch Targets) */}
           <div className="border-t border-white/10 pt-4 flex flex-wrap items-center justify-between gap-3 text-xs">

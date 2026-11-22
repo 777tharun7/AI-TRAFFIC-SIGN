@@ -846,11 +846,13 @@ export const Toom4WayAppShell: React.FC<AppShellProps> = ({
           )}
 
           {currentView === 'car_cockpit' && (
-            <div className="p-6 max-w-7xl mx-auto">
+            <div className="p-4 sm:p-6 max-w-7xl mx-auto">
               <CarCockpitHMI
                 vehicle={vehicle}
                 onControl={onControl}
                 routes={routes}
+                signals={signals}
+                rius={rius}
               />
             </div>
           )}

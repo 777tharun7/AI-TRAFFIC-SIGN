@@ -45,6 +45,13 @@ export const RealNavigationMap: React.FC<Props> = ({
   const eventMarkersRef = useRef<maplibregl.Marker[]>([]);
   const stopLineMarkersRef = useRef<maplibregl.Marker[]>([]);
 
+  // Smooth Interpolation & Tracking Refs
+  const currentCoordRef = useRef<[number, number] | null>(null);
+  const targetCoordRef = useRef<[number, number] | null>(null);
+  const startCoordRef = useRef<[number, number] | null>(null);
+  const animFrameIdRef = useRef<number | null>(null);
+  const animStartTimeRef = useRef<number>(0);
+
   // UI States
   const [mapMode, setMapMode] = useState<'2D' | '3D'>('2D');
   const [isFollowing, setIsFollowing] = useState<boolean>(true);
@@ -277,21 +284,26 @@ export const RealNavigationMap: React.FC<Props> = ({
   }, [mapMode]);
 
   // Update Dynamic Vehicle Marker
+  // Update Dynamic Vehicle Marker with Silky Smooth Interpolation
   useEffect(() => {
     if (!mapRef.current || !vehicle || viewFormat === 'schematic') return;
     const map = mapRef.current;
-    const lng = vehicle.longitude;
-    const lat = vehicle.latitude;
+    const targetLng = vehicle.longitude;
+    const targetLat = vehicle.latitude;
 
     if (!vehicleMarkerRef.current) {
+      currentCoordRef.current = [targetLng, targetLat];
+      targetCoordRef.current = [targetLng, targetLat];
+      startCoordRef.current = [targetLng, targetLat];
+
       const el = document.createElement('div');
-      el.className = 'relative flex items-center justify-center cursor-pointer';
+      el.className = 'relative flex items-center justify-center cursor-pointer maplibre-smooth-marker';
       el.innerHTML = `
-        <div id="veh-radar-ring" class="absolute w-20 h-20 rounded-full bg-cyan-500/20 animate-ping"></div>
-        <div id="veh-halo" class="absolute w-14 h-14 rounded-full bg-cyan-500/30 border-2 border-cyan-400"></div>
+        <div id="veh-radar-ring" class="absolute w-20 h-20 rounded-full bg-cyan-500/20 animate-ping pointer-events-none"></div>
+        <div id="veh-halo" class="absolute w-14 h-14 rounded-full bg-cyan-500/30 border-2 border-cyan-400 pointer-events-none"></div>
         
         <!-- Directional Car Body with Arrow -->
-        <div id="veh-body" class="relative z-10 w-9 h-9 rounded-full bg-slate-900 border-2 border-white shadow-xl flex items-center justify-center text-white font-black" style="transform: rotate(${vehicle.heading}deg); transition: transform 0.2s ease;">
+        <div id="veh-body" class="relative z-10 w-9 h-9 rounded-full bg-slate-900 border-2 border-white shadow-xl flex items-center justify-center text-white font-black vehicle-heading-indicator" style="transform: rotate(${vehicle.heading}deg);">
           <svg class="w-5 h-5 text-cyan-400" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2L4 20L12 16L20 20L12 2Z" />
           </svg>
@@ -304,28 +316,70 @@ export const RealNavigationMap: React.FC<Props> = ({
       `;
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
-        .setLngLat([lng, lat])
+        .setLngLat([targetLng, targetLat])
         .addTo(map);
 
       vehicleMarkerRef.current = marker;
+
+      if (isFollowing) {
+        map.setCenter([targetLng, targetLat]);
+      }
     } else {
-      vehicleMarkerRef.current.setLngLat([lng, lat]);
+      // Immediate telemetry text and rotation update
       const vehEl = vehicleMarkerRef.current.getElement();
       const vehBody = (vehEl?.querySelector('#veh-body') || document.getElementById('veh-body')) as HTMLElement | null;
       const vehSpeed = (vehEl?.querySelector('#veh-speed-text') || document.getElementById('veh-speed-text')) as HTMLElement | null;
 
       if (vehBody) vehBody.style.transform = `rotate(${vehicle.heading}deg)`;
       if (vehSpeed) vehSpeed.innerText = `${Math.round(vehicle.speed_kmh)} km/h`;
+
+      // Cancel previous frame if active
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+
+      startCoordRef.current = currentCoordRef.current ? [...currentCoordRef.current] : [targetLng, targetLat];
+      targetCoordRef.current = [targetLng, targetLat];
+      animStartTimeRef.current = performance.now();
+      const duration = 500; // Matches backend 500ms broadcast interval
+
+      const animateStep = (now: number) => {
+        const elapsed = now - animStartTimeRef.current;
+        const progress = Math.min(1, elapsed / duration);
+        const t = progress; // continuous progression
+
+        if (startCoordRef.current && targetCoordRef.current) {
+          const curLng = startCoordRef.current[0] + (targetCoordRef.current[0] - startCoordRef.current[0]) * t;
+          const curLat = startCoordRef.current[1] + (targetCoordRef.current[1] - startCoordRef.current[1]) * t;
+          currentCoordRef.current = [curLng, curLat];
+
+          if (vehicleMarkerRef.current) {
+            vehicleMarkerRef.current.setLngLat([curLng, curLat]);
+          }
+
+          if (isFollowing && mapRef.current) {
+            mapRef.current.easeTo({
+              center: [curLng, curLat],
+              bearing: mapMode === '3D' ? vehicle.heading : 0,
+              duration: 80,
+              easing: (easeT) => easeT
+            });
+          }
+        }
+
+        if (progress < 1) {
+          animFrameIdRef.current = requestAnimationFrame(animateStep);
+        }
+      };
+
+      animFrameIdRef.current = requestAnimationFrame(animateStep);
     }
 
-    if (isFollowing) {
-      map.easeTo({
-        center: [lng, lat],
-        bearing: mapMode === '3D' ? vehicle.heading : 0,
-        duration: 350,
-        easing: (t) => t
-      });
-    }
+    return () => {
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+    };
   }, [vehicle?.latitude, vehicle?.longitude, vehicle?.heading, vehicle?.speed_kmh, isFollowing, mapMode, viewFormat]);
 
   // Update Callouts, Traffic Signals & Road Events

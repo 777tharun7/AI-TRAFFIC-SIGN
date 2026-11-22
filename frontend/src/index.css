@@ -10,17 +10,37 @@
   }
 }
 
-/* Consolidated 3-Tier Card Design System */
+/* Standardized RoadSense Enterprise Design System Tokens */
+:root {
+  --radius-panel: 1.25rem;   /* 20px */
+  --radius-card: 1rem;       /* 16px */
+  --radius-inner: 0.75rem;   /* 12px */
+  --spacing-panel: 1.5rem;   /* 24px */
+  --spacing-card: 1.25rem;   /* 20px */
+}
+
+/* Consolidated Design System Cards */
 .card-default {
-  @apply bg-white border border-slate-200/90 rounded-2xl shadow-sm;
+  @apply bg-white border border-slate-200/90 rounded-2xl shadow-xs p-5;
 }
 
 .card-elevated {
-  @apply bg-white border border-slate-200/90 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer;
+  @apply bg-white border border-slate-200/90 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer p-5;
 }
 
 .card-hud {
-  @apply bg-[#0A111F] border border-slate-800 rounded-2xl shadow-xl text-white;
+  @apply bg-[#0A111F] border border-slate-800 rounded-2xl shadow-xl text-white p-5;
+}
+
+/* Smooth MapLibre Vehicle Marker Animation */
+.maplibre-smooth-marker {
+  transition: transform 450ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  will-change: transform;
+}
+
+.vehicle-heading-indicator {
+  transition: transform 300ms ease-out;
+  will-change: transform;
 }
 
 /* WCAG 2.1 AA Interactive Card System */
