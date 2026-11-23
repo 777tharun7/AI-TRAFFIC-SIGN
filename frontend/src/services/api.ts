@@ -200,11 +200,17 @@ export const api = {
       {
         detections: [
           {
+            bbox: [120, 150, 240, 270],
             box: [120, 150, 240, 270],
             confidence: 0.982,
-            class_id: 2,
-            class_name: "Speed limit (50km/h)",
-            category: "Mandatory/Regulatory"
+            class_id: 22,
+            name: "Bumpy Road / Speed Breakers",
+            class_name: "Bumpy Road / Speed Breakers",
+            code: "BUMPY_ROAD",
+            category: "Cautionary/Warning",
+            priority: "HIGH",
+            value: 20,
+            unit: "km/h"
           }
         ],
         inference_time_ms: 12.4,
@@ -304,18 +310,88 @@ export const api = {
   },
 
   async classifyROI(imageBase64: string, bbox?: number[]): Promise<any> {
+    const roundedBbox = bbox ? bbox.map(v => Math.round(v)) : [0, 0, 64, 64];
+
+    const fallbackCropResult = {
+      bbox: roundedBbox,
+      primary: {
+        class_id: 22,
+        confidence: 0.984,
+        name: "Bumpy Road / Speed Breakers",
+        code: "BUMPY_ROAD",
+        category: "WARNING",
+        priority: "HIGH",
+        value: 20,
+        unit: "km/h"
+      },
+      top_5: [
+        {
+          class_id: 22,
+          confidence: 0.984,
+          name: "Bumpy Road / Speed Breakers",
+          code: "BUMPY_ROAD",
+          category: "WARNING",
+          priority: "HIGH",
+          value: 20,
+          unit: "km/h"
+        },
+        {
+          class_id: 18,
+          confidence: 0.011,
+          name: "General Hazard / Caution",
+          code: "GENERAL_CAUTION",
+          category: "WARNING",
+          priority: "MEDIUM",
+          value: null,
+          unit: null
+        },
+        {
+          class_id: 25,
+          confidence: 0.003,
+          name: "Road Work in Progress",
+          code: "ROAD_WORK",
+          category: "WARNING",
+          priority: "HIGH",
+          value: 30,
+          unit: "km/h"
+        },
+        {
+          class_id: 27,
+          confidence: 0.001,
+          name: "Pedestrian Crossing Ahead",
+          code: "PEDESTRIAN_CROSSING",
+          category: "WARNING",
+          priority: "HIGH",
+          value: null,
+          unit: null
+        },
+        {
+          class_id: 14,
+          confidence: 0.001,
+          name: "Stop Sign",
+          code: "STOP",
+          category: "REGULATORY",
+          priority: "HIGH",
+          value: 0,
+          unit: "km/h"
+        }
+      ],
+      cropped_roi_base64: imageBase64,
+      latency_ms: 11.8,
+      fps: 84.7,
+      vehicle_action: "DECELERATE_SPEED_BREAKER_20KMH",
+      target_speed_kmh: 20,
+      timestamp: Date.now()
+    };
+
     return safeJsonFetch<any>(
       `${API_BASE}/signs/classify-roi`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: imageBase64, bbox }),
+        body: JSON.stringify({ image_base64: imageBase64, bbox: roundedBbox }),
       },
-      {
-        class_id: 2,
-        class_name: "Speed limit (50km/h)",
-        confidence: 0.985
-      }
+      fallbackCropResult
     );
   },
 

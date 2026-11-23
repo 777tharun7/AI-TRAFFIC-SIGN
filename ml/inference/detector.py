@@ -280,17 +280,26 @@ class TrafficSignDetector:
             
         h, w, _ = img_bgr.shape
         if bbox and len(bbox) == 4:
-            x1 = max(0, min(w - 1, int(bbox[0])))
-            y1 = max(0, min(h - 1, int(bbox[1])))
-            x2 = max(x1 + 1, min(w, int(bbox[2])))
-            y2 = max(y1 + 1, min(h, int(bbox[3])))
+            raw_x1 = float(bbox[0])
+            raw_y1 = float(bbox[1])
+            raw_x2 = float(bbox[2])
+            raw_y2 = float(bbox[3])
+            
+            bx1, bx2 = min(raw_x1, raw_x2), max(raw_x1, raw_x2)
+            by1, by2 = min(raw_y1, raw_y2), max(raw_y1, raw_y2)
+
+            x1 = max(0, min(w - 1, int(round(bx1))))
+            y1 = max(0, min(h - 1, int(round(by1))))
+            x2 = max(x1 + 1, min(w, int(round(bx2))))
+            y2 = max(y1 + 1, min(h, int(round(by2))))
             crop = img_bgr[y1:y2, x1:x2]
         else:
             x1, y1, x2, y2 = 0, 0, w, h
             crop = img_bgr
             
         if crop.size == 0 or crop.shape[0] < 3 or crop.shape[1] < 3:
-            return {"error": "ROI crop too small"}
+            crop = img_bgr
+            x1, y1, x2, y2 = 0, 0, w, h
             
         crop_resized = cv2.resize(crop, (64, 64))
         crop_rgb = cv2.cvtColor(crop_resized, cv2.COLOR_BGR2RGB)

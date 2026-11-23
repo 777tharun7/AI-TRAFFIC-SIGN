@@ -234,7 +234,7 @@ async def detect_signs(
 
 class ClassifyROIRequest(BaseModel):
     image_base64: str
-    bbox: Optional[List[int]] = None # [x1, y1, x2, y2]
+    bbox: Optional[List[float]] = None # [x1, y1, x2, y2] - accepts ints and floats seamlessly
     
 @router.post("/signs/classify-roi", summary="Classify manually cropped region or selected tracking box")
 async def classify_roi(req: ClassifyROIRequest):
