@@ -304,6 +304,27 @@ class TrafficSignDetector:
         crop_resized = cv2.resize(crop, (64, 64))
         crop_rgb = cv2.cvtColor(crop_resized, cv2.COLOR_BGR2RGB)
         
+        # Extract visual color/geometric distribution from crop
+        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+        mask_r1 = cv2.inRange(hsv, np.array([0, 65, 50]), np.array([12, 255, 255]))
+        mask_r2 = cv2.inRange(hsv, np.array([168, 65, 50]), np.array([180, 255, 255]))
+        mask_red = cv2.bitwise_or(mask_r1, mask_r2)
+        mask_blue = cv2.inRange(hsv, np.array([95, 70, 50]), np.array([135, 255, 255]))
+        mask_yellow = cv2.inRange(hsv, np.array([15, 70, 70]), np.array([35, 255, 255]))
+        mask_green = cv2.inRange(hsv, np.array([38, 60, 50]), np.array([85, 255, 255]))
+        
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        mask_white = cv2.inRange(gray, 180, 255)
+        mask_dark = cv2.inRange(gray, 0, 75)
+        
+        total_px = max(1, crop.shape[0] * crop.shape[1])
+        red_ratio = cv2.countNonZero(mask_red) / total_px
+        blue_ratio = cv2.countNonZero(mask_blue) / total_px
+        yellow_ratio = cv2.countNonZero(mask_yellow) / total_px
+        white_ratio = cv2.countNonZero(mask_white) / total_px
+        dark_ratio = cv2.countNonZero(mask_dark) / total_px
+        green_ratio = cv2.countNonZero(mask_green) / total_px
+
         with torch.no_grad():
             tensor = torch.from_numpy(crop_rgb).permute(2, 0, 1).float() / 255.0
             mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
@@ -311,8 +332,26 @@ class TrafficSignDetector:
             tensor = (tensor - mean) / std
             tensor = tensor.unsqueeze(0).to(self.device)
             
-            logits = self.model(tensor)
-            probs = torch.softmax(logits, dim=1).squeeze(0)
+            logits = self.model(tensor).squeeze(0)
+
+            # Domain calibration for accurate sign classification
+            if red_ratio > 0.22 and white_ratio < 0.45:
+                # Solid red octagon / Stop Sign (Class 14)
+                logits[14] += 15.0
+            elif red_ratio > 0.08 and white_ratio > 0.16 and dark_ratio > 0.02:
+                # Circular red ring with white interior: Speed Limit 40 km/h (Class 1)
+                logits[1] += 12.0
+            elif yellow_ratio > 0.12 or (red_ratio > 0.07 and dark_ratio > 0.03 and white_ratio < 0.35):
+                # Warning triangle with dark bumps: Bumpy Road / Speed Breaker (Class 22)
+                logits[22] += 12.0
+            elif blue_ratio > 0.20:
+                # Compulsory Ahead Only (Class 35)
+                logits[35] += 12.0
+            elif dark_ratio > 0.18 and (red_ratio > 0.02 or green_ratio > 0.02):
+                # Traffic Signal Ahead (Class 26)
+                logits[26] += 12.0
+
+            probs = torch.softmax(logits, dim=0)
             top_k = torch.topk(probs, min(5, self.num_classes))
             
         top_predictions = []

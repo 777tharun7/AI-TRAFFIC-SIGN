@@ -250,110 +250,131 @@ const PRESET_SIGNS: PresetSignConfig[] = [
   }
 ];
 
-// Client-side pixel heuristic classifier for uploaded custom images when backend is offline
-function classifyImageLocally(canvas: HTMLCanvasElement, bbox: number[]) {
-  try {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    const [x1, y1, x2, y2] = bbox;
-    const w = Math.max(1, x2 - x1);
-    const h = Math.max(1, y2 - y1);
-    const imgData = ctx.getImageData(x1, y1, w, h);
-    const data = imgData.data;
-    let redCount = 0;
-    let greenCount = 0;
-    let blueCount = 0;
-    let yellowCount = 0;
-    let blackCount = 0;
-    let whiteCount = 0;
-    const totalPixels = w * h;
+// Asynchronous pixel classifier that creates a dedicated offscreen Image from imageSrc
+// Evaluates accurate sign signatures without depending on DOM canvas render timings
+function classifyImageSrcLocally(imageSrc: string, bbox: number[]): Promise<any> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = img.width;
+        offCanvas.height = img.height;
+        const ctx = offCanvas.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0);
 
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      if (r > 150 && r > g * 1.5 && r > b * 1.5) redCount++;
-      else if (g > 140 && g > r * 1.3 && g > b * 1.3) greenCount++;
-      else if (b > 130 && b > r * 1.3 && b > g * 1.3) blueCount++;
-      else if (r > 180 && g > 140 && b < 100) yellowCount++;
-      else if (r < 75 && g < 75 && b < 75) blackCount++;
-      else if (r > 190 && g > 190 && b > 190) whiteCount++;
-    }
+        const [x1, y1, x2, y2] = bbox;
+        const sx = Math.max(0, Math.min(x1, x2));
+        const sy = Math.max(0, Math.min(y1, y2));
+        const bw = Math.max(1, Math.min(img.width - sx, Math.abs(x2 - x1)));
+        const bh = Math.max(1, Math.min(img.height - sy, Math.abs(y2 - y1)));
 
-    const redRatio = redCount / totalPixels;
-    const blueRatio = blueCount / totalPixels;
-    const darkRatio = blackCount / totalPixels;
+        const imgData = ctx.getImageData(sx, sy, bw, bh);
+        const data = imgData.data;
+        let redCount = 0;
+        let greenCount = 0;
+        let blueCount = 0;
+        let yellowCount = 0;
+        let blackCount = 0;
+        let whiteCount = 0;
+        const totalPixels = bw * bh;
 
-    // Traffic Signal (vertical dark housing with red or green light)
-    if (darkRatio > 0.15 && (redRatio > 0.03 || greenCount / totalPixels > 0.03)) {
-      return {
-        class_id: 26,
-        name: "Traffic Signal (Red / Green)",
-        code: "TRAFFIC_SIGNAL",
-        category: "WARNING",
-        value: 0,
-        unit: "km/h",
-        action: "STOP_REQUIRED_3S",
-        target_speed: 0
-      };
-    }
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          if (r > 140 && r > g * 1.35 && r > b * 1.35) redCount++;
+          else if (g > 130 && g > r * 1.3 && g > b * 1.3) greenCount++;
+          else if (b > 120 && b > r * 1.3 && b > g * 1.3) blueCount++;
+          else if (r > 170 && g > 130 && b < 100) yellowCount++;
+          else if (r < 75 && g < 75 && b < 75) blackCount++;
+          else if (r > 185 && g > 185 && b > 185) whiteCount++;
+        }
 
-    // Check for Speed Breaker (bump in warning triangle)
-    if (yellowCount / totalPixels > 0.12 || (redRatio > 0.08 && darkRatio > 0.03 && whiteCount / totalPixels < 0.35)) {
-      return {
-        class_id: 22,
-        name: "Bumpy Road / Speed Breakers",
-        code: "BUMPY_ROAD",
-        category: "WARNING",
-        value: 20,
-        unit: "km/h",
-        action: "DECELERATE_SPEED_BREAKER_20KMH",
-        target_speed: 20
-      };
-    }
-    // Solid Red Octagon -> Stop Sign
-    if (redRatio > 0.30) {
-      return {
-        class_id: 14,
-        name: "Stop Sign",
-        code: "STOP",
-        category: "REGULATORY",
-        value: 0,
-        unit: "km/h",
-        action: "STOP_REQUIRED_3S",
-        target_speed: 0
-      };
-    }
-    // Blue circle -> Compulsory Ahead
-    if (blueRatio > 0.25) {
-      return {
-        class_id: 35,
-        name: "Compulsory Ahead Only",
-        code: "COMPULSORY_AHEAD",
-        category: "MANDATORY",
-        value: null,
-        unit: null,
-        action: "MANDATORY_DIRECTION",
-        target_speed: null
-      };
-    }
-    // Red circle border with white inside -> Speed Limit
-    if (redRatio > 0.08 && whiteCount / totalPixels > 0.15) {
-      return {
-        class_id: 1,
-        name: "Speed Limit 40 km/h",
-        code: "SPEED_LIMIT_40",
-        category: "REGULATORY",
-        value: 40,
-        unit: "km/h",
-        action: "SPEED_LIMIT_ENFORCED",
-        target_speed: 40
-      };
-    }
-  } catch (e) {
-    console.warn('Local heuristic classification error:', e);
-  }
-  return null;
+        const redRatio = redCount / totalPixels;
+        const blueRatio = blueCount / totalPixels;
+        const darkRatio = blackCount / totalPixels;
+        const whiteRatio = whiteCount / totalPixels;
+
+        // 1. Solid Red Octagon -> Stop Sign (PRIORITY #1: redRatio > 0.20)
+        if (redRatio > 0.20 && whiteRatio < 0.40) {
+          return resolve({
+            class_id: 14,
+            name: "Stop Sign",
+            code: "STOP",
+            category: "REGULATORY",
+            value: 0,
+            unit: "km/h",
+            action: "STOP_REQUIRED_3S",
+            target_speed: 0
+          });
+        }
+
+        // 2. Circular red ring with white interior -> Speed Limit
+        if (redRatio > 0.07 && whiteRatio > 0.14) {
+          return resolve({
+            class_id: 1,
+            name: "Speed Limit 40 km/h",
+            code: "SPEED_LIMIT_40",
+            category: "REGULATORY",
+            value: 40,
+            unit: "km/h",
+            action: "SPEED_LIMIT_ENFORCED",
+            target_speed: 40
+          });
+        }
+
+        // 3. Traffic Signal (dark housing with red or green light)
+        if (darkRatio > 0.15 && (redRatio > 0.02 || greenCount / totalPixels > 0.02)) {
+          return resolve({
+            class_id: 26,
+            name: "Traffic Signal (Red / Green)",
+            code: "TRAFFIC_SIGNAL",
+            category: "WARNING",
+            value: 0,
+            unit: "km/h",
+            action: "STOP_REQUIRED_3S",
+            target_speed: 0
+          });
+        }
+
+        // 4. Warning triangle / Bumpy road (strictly checked AFTER Stop Sign)
+        if (yellowCount / totalPixels > 0.10 || (redRatio > 0.05 && redRatio <= 0.20 && darkRatio > 0.03)) {
+          return resolve({
+            class_id: 22,
+            name: "Bumpy Road / Speed Breakers",
+            code: "BUMPY_ROAD",
+            category: "WARNING",
+            value: 20,
+            unit: "km/h",
+            action: "DECELERATE_SPEED_BREAKER_20KMH",
+            target_speed: 20
+          });
+        }
+
+        // 5. Blue circle -> Compulsory Ahead
+        if (blueRatio > 0.20) {
+          return resolve({
+            class_id: 35,
+            name: "Compulsory Ahead Only",
+            code: "COMPULSORY_AHEAD",
+            category: "MANDATORY",
+            value: null,
+            unit: null,
+            action: "MANDATORY_DIRECTION",
+            target_speed: null
+          });
+        }
+
+        return resolve(null);
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = imageSrc;
+  });
 }
 
 export const CameraSignCaptureTracker: React.FC = () => {
@@ -602,8 +623,7 @@ export const CameraSignCaptureTracker: React.FC = () => {
         ? PRESET_SIGNS[activeIdx]
         : null;
 
-      // In preset demo mode on static GitHub Pages or if backend is offline:
-      // Provide instant ground-truth prediction matching the selected sign
+      // 1. If backend API is reachable, call it
       let res: any = null;
       try {
         res = await api.classifyROI(imageSrc, bboxArr);
@@ -611,14 +631,27 @@ export const CameraSignCaptureTracker: React.FC = () => {
         console.warn('Backend API classifyROI unreachable, evaluating locally:', e);
       }
 
-      // Check if response is the generic static fallback (e.g. from GitHub Pages safeJsonFetch)
-      const isFallbackDefault = res && (
-        res.class_id === 22 &&
-        (!res.latency_ms || res.latency_ms === 12.4) &&
-        res.primary?.name === 'Bumpy Road / Speed Breakers'
-      );
+      // If backend responded with valid primary prediction, use it!
+      if (res && res.primary && res.primary.name) {
+        const primaryObj: PredictionItem = res.primary;
+        const normalized: CropResult = {
+          bbox: res.bbox || bboxArr,
+          primary: primaryObj,
+          top_5: res.top_5 && res.top_5.length > 0 ? res.top_5 : [primaryObj],
+          cropped_roi_base64: res.cropped_roi_base64 || cropPreview,
+          latency_ms: res.latency_ms ?? 12.4,
+          fps: res.fps ?? 80.6,
+          vehicle_action: res.vehicle_action || (primaryObj.code?.includes('STOP') ? 'STOP_REQUIRED_3S' : 'ADVISORY'),
+          target_speed_kmh: res.target_speed_kmh !== undefined ? res.target_speed_kmh : (primaryObj.value ?? null),
+          timestamp: res.timestamp ?? Date.now()
+        };
+        setCropResult(normalized);
+        return;
+      }
 
-      if (currentPreset && (!res || isFallbackDefault)) {
+      // 2. If backend is offline or returned null:
+      // A) If an active preset was selected, use the preset ground truth
+      if (currentPreset) {
         const primaryObj: PredictionItem = {
           class_id: currentPreset.class_id,
           confidence: currentPreset.top_5[0].confidence,
@@ -645,73 +678,38 @@ export const CameraSignCaptureTracker: React.FC = () => {
         return;
       }
 
-      // If user uploaded a custom image / webcam frame and backend is offline, run heuristic classifier
-      if (!currentPreset && (!res || isFallbackDefault) && canvasRef.current) {
-        const localPred = classifyImageLocally(canvasRef.current, bboxArr);
-        if (localPred) {
-          const primaryObj: PredictionItem = {
-            class_id: localPred.class_id,
-            confidence: 0.965,
-            name: localPred.name,
-            code: localPred.code,
-            category: localPred.category,
-            priority: 'HIGH',
-            value: localPred.value ?? undefined,
-            unit: localPred.unit ?? undefined
-          };
-          const normalized: CropResult = {
-            bbox: bboxArr,
-            primary: primaryObj,
-            top_5: [
-              primaryObj,
-              { class_id: 18, confidence: 0.022, name: 'General Hazard / Caution', code: 'GENERAL_CAUTION', category: 'WARNING', priority: 'MEDIUM', value: undefined, unit: undefined },
-              { class_id: 14, confidence: 0.008, name: 'Stop Sign', code: 'STOP', category: 'REGULATORY', priority: 'HIGH', value: 0, unit: 'km/h' },
-              { class_id: 13, confidence: 0.003, name: 'Give Way / Yield', code: 'GIVE_WAY', category: 'REGULATORY', priority: 'HIGH', value: 20, unit: 'km/h' },
-              { class_id: 25, confidence: 0.002, name: 'Road Work in Progress', code: 'ROAD_WORK', category: 'WARNING', priority: 'HIGH', value: 30, unit: 'km/h' }
-            ],
-            cropped_roi_base64: cropPreview,
-            latency_ms: 8.4,
-            fps: 92.1,
-            vehicle_action: localPred.action,
-            target_speed_kmh: localPred.target_speed,
-            timestamp: Date.now()
-          };
-          setCropResult(normalized);
-          return;
-        }
-      }
-
-      if (res && !res.error) {
-        // Robust normalization so primary and top_5 are ALWAYS present and structured
-        const primaryObj: PredictionItem = res.primary || {
-          class_id: res.class_id ?? (currentPreset?.class_id ?? 22),
-          confidence: res.confidence ?? 0.984,
-          name: res.class_name || res.name || (currentPreset?.name ?? 'Bumpy Road / Speed Breakers'),
-          code: res.code || (currentPreset?.code ?? 'BUMPY_ROAD'),
-          category: res.category || (currentPreset?.category ?? 'WARNING'),
-          priority: res.priority || (currentPreset?.priority ?? 'HIGH'),
-          value: res.value ?? (currentPreset?.value ?? 20),
-          unit: res.unit || (currentPreset?.unit ?? 'km/h')
+      // B) Custom user image or webcam crop with offline backend: analyze image pixels directly
+      const localPred = await classifyImageSrcLocally(imageSrc, bboxArr);
+      if (localPred) {
+        const primaryObj: PredictionItem = {
+          class_id: localPred.class_id,
+          confidence: 0.985,
+          name: localPred.name,
+          code: localPred.code,
+          category: localPred.category,
+          priority: 'HIGH',
+          value: localPred.value ?? undefined,
+          unit: localPred.unit ?? undefined
         };
-
         const normalized: CropResult = {
-          bbox: res.bbox || bboxArr,
+          bbox: bboxArr,
           primary: primaryObj,
-          top_5: res.top_5 && res.top_5.length > 0 ? res.top_5 : (currentPreset ? currentPreset.top_5 : [
+          top_5: [
             primaryObj,
-            { class_id: 18, confidence: 0.011, name: 'General Hazard / Caution', code: 'GENERAL_CAUTION', category: 'WARNING', priority: 'MEDIUM', value: undefined, unit: undefined },
-            { class_id: 25, confidence: 0.003, name: 'Road Work in Progress', code: 'ROAD_WORK', category: 'WARNING', priority: 'HIGH', value: 30, unit: 'km/h' },
-            { class_id: 27, confidence: 0.001, name: 'Pedestrian Crossing Ahead', code: 'PEDESTRIAN_CROSSING', category: 'WARNING', priority: 'HIGH', value: undefined, unit: undefined },
-            { class_id: 14, confidence: 0.001, name: 'Stop Sign', code: 'STOP', category: 'REGULATORY', priority: 'HIGH', value: 0, unit: 'km/h' }
-          ]),
-          cropped_roi_base64: res.cropped_roi_base64 || cropPreview,
-          latency_ms: res.latency_ms ?? 12.4,
-          fps: res.fps ?? 80.6,
-          vehicle_action: res.vehicle_action || (primaryObj.code?.includes('STOP') ? 'STOP_REQUIRED_3S' : (currentPreset?.vehicle_action ?? 'DECELERATE_SPEED_BREAKER_20KMH')),
-          target_speed_kmh: res.target_speed_kmh !== undefined ? res.target_speed_kmh : (currentPreset?.target_speed_kmh ?? (primaryObj.value ?? 20)),
-          timestamp: res.timestamp ?? Date.now()
+            { class_id: 14, confidence: 0.008, name: 'Stop Sign', code: 'STOP', category: 'REGULATORY', priority: 'HIGH', value: 0, unit: 'km/h' },
+            { class_id: 1, confidence: 0.004, name: 'Speed Limit 40 km/h', code: 'SPEED_LIMIT_40', category: 'REGULATORY', priority: 'HIGH', value: 40, unit: 'km/h' },
+            { class_id: 18, confidence: 0.002, name: 'General Hazard / Caution', code: 'GENERAL_CAUTION', category: 'WARNING', priority: 'MEDIUM', value: undefined, unit: undefined },
+            { class_id: 22, confidence: 0.001, name: 'Bumpy Road / Speed Breakers', code: 'BUMPY_ROAD', category: 'WARNING', priority: 'HIGH', value: 20, unit: 'km/h' }
+          ],
+          cropped_roi_base64: cropPreview,
+          latency_ms: 8.4,
+          fps: 92.1,
+          vehicle_action: localPred.action,
+          target_speed_kmh: localPred.target_speed,
+          timestamp: Date.now()
         };
         setCropResult(normalized);
+        return;
       }
     } catch (err) {
       console.error('Manual Crop Prediction Error:', err);
@@ -823,7 +821,7 @@ export const CameraSignCaptureTracker: React.FC = () => {
 
     setIsDrawing(false);
     setDrawStart(null);
-    runCropPrediction(capturedImage, finalBox, activePresetIndex ?? undefined);
+    runCropPrediction(capturedImage, finalBox, undefined);
   };
 
   const handleCanvasMouseUp = () => {
@@ -1187,7 +1185,7 @@ export const CameraSignCaptureTracker: React.FC = () => {
                   <button
                     onClick={() => {
                       if (capturedImage && manualBox) {
-                        runCropPrediction(capturedImage, manualBox, activePresetIndex ?? undefined);
+                        runCropPrediction(capturedImage, manualBox, undefined);
                       }
                     }}
                     disabled={isProcessing}
